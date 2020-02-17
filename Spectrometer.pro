@@ -72,3 +72,15 @@ DISTFILES += \
     lib/x64/Release/CAENComm.lib \
     lib/x64/Release/CAENDigitizer.lib \
     wavedump
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/Win32/Release/ -lCAENComm
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/Win32/Debug/ -lCAENComm
+
+INCLUDEPATH += $$PWD/.
+DEPENDPATH += $$PWD/.
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/Win32/Release/ -lCAENDigitizer
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/Win32/Debug/ -lCAENDigitizer
+
+INCLUDEPATH += $$PWD/.
+DEPENDPATH += $$PWD/.
