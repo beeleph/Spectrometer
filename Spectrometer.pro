@@ -19,7 +19,6 @@ SOURCES += \
     WDconfig.c \
     WDplot.c \
     WaveDump.c \
-    X742CorrectionRoutines.c \
     fft.c \
     flash.c \
     keyb.c \
@@ -34,7 +33,6 @@ HEADERS += \
     WDconfig.h \
     WDplot.h \
     WaveDump.h \
-    X742CorrectionRoutines.h \
     fft.h \
     flash.h \
     flash_opcodes.h \
@@ -70,17 +68,16 @@ DISTFILES += \
     lib/x64/Debug/CAENComm.lib \
     lib/x64/Debug/CAENDigitizer.lib \
     lib/x64/Release/CAENComm.lib \
-    lib/x64/Release/CAENDigitizer.lib \
-    wavedump
+    lib/x64/Release/CAENDigitizer.lib
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/Win32/Release/ -lCAENComm
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/Win32/Debug/ -lCAENComm
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/Win32/release/ -lCAENComm
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/Win32/debug/ -lCAENComm
 
 INCLUDEPATH += $$PWD/.
 DEPENDPATH += $$PWD/.
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/Win32/Release/ -lCAENDigitizer
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/Win32/Debug/ -lCAENDigitizer
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib/Win32/release/ -lCAENDigitizer
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib/Win32/debug/ -lCAENDigitizer
 
 INCLUDEPATH += $$PWD/.
 DEPENDPATH += $$PWD/.

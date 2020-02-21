@@ -47,7 +47,6 @@
 #include "WDplot.h"
 #include "fft.h"
 #include "keyb.h"
-#include "X742CorrectionRoutines.h"
 
 extern int dc_file[MAX_CH];
 extern int thr_file[MAX_CH];
@@ -149,35 +148,6 @@ int GetMoreBoardInfo(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo, WaveDumpConfig
     case CAEN_DGTZ_XX740_FAMILY_CODE: WDcfg->Nbit = 12; WDcfg->Ts = 16.0; break;
     case CAEN_DGTZ_XX725_FAMILY_CODE: WDcfg->Nbit = 14; WDcfg->Ts = 4.0; break;
     case CAEN_DGTZ_XX730_FAMILY_CODE: WDcfg->Nbit = 14; WDcfg->Ts = 2.0; break;
-    case CAEN_DGTZ_XX742_FAMILY_CODE: 
-        WDcfg->Nbit = 12; 
-        if ((ret = CAEN_DGTZ_GetDRS4SamplingFrequency(handle, &freq)) != CAEN_DGTZ_Success) return CAEN_DGTZ_CommError;
-        switch (freq) {
-        case CAEN_DGTZ_DRS4_1GHz:
-            WDcfg->Ts = 1.0;
-            break;
-        case CAEN_DGTZ_DRS4_2_5GHz:
-            WDcfg->Ts = (float)0.4;
-            break;
-        case CAEN_DGTZ_DRS4_5GHz:
-            WDcfg->Ts = (float)0.2;
-            break;
-		case CAEN_DGTZ_DRS4_750MHz:
-            WDcfg->Ts = (float)(1.0/750.0)*1000.0;
-            break;
-        }
-        switch(BoardInfo.FormFactor) {
-        case CAEN_DGTZ_VME64_FORM_FACTOR:
-        case CAEN_DGTZ_VME64X_FORM_FACTOR:
-            WDcfg->MaxGroupNumber = 4;
-            break;
-        case CAEN_DGTZ_DESKTOP_FORM_FACTOR:
-        case CAEN_DGTZ_NIM_FORM_FACTOR:
-        default:
-            WDcfg->MaxGroupNumber = 2;
-            break;
-        }
-        break;
     default: return -1;
     }
     if (((BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE) ||
@@ -226,18 +196,6 @@ int GetMoreBoardInfo(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo, WaveDumpConfig
         case CAEN_DGTZ_DESKTOP_FORM_FACTOR:
         case CAEN_DGTZ_NIM_FORM_FACTOR:
             WDcfg->Nch = 32;
-            break;
-        }
-        break;
-    case CAEN_DGTZ_XX742_FAMILY_CODE:
-        switch( BoardInfo.FormFactor) {
-        case CAEN_DGTZ_VME64_FORM_FACTOR:
-        case CAEN_DGTZ_VME64X_FORM_FACTOR:
-            WDcfg->Nch = 36;
-            break;
-        case CAEN_DGTZ_DESKTOP_FORM_FACTOR:
-        case CAEN_DGTZ_NIM_FORM_FACTOR:
-            WDcfg->Nch = 16;
             break;
         }
         break;
@@ -293,11 +251,6 @@ int ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t B
     // Set the waveform test bit for debugging
     if (WDcfg.TestPattern)
         ret |= CAEN_DGTZ_WriteRegister(handle, CAEN_DGTZ_BROAD_CH_CONFIGBIT_SET_ADD, 1<<3);
-    // custom setting for X742 boards
-    if (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) {
-        ret |= CAEN_DGTZ_SetFastTriggerDigitizing(handle,WDcfg.FastTriggerEnabled);
-        ret |= CAEN_DGTZ_SetFastTriggerMode(handle,WDcfg.FastTriggerMode);
-    }
     if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX731_FAMILY_CODE)) {
         ret |= CAEN_DGTZ_SetDESMode(handle, WDcfg.DesMode);
     }
@@ -309,11 +262,9 @@ int ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t B
     }
 
     ret |= CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg.PostTrigger);
-    if(BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE) {
-        uint32_t pt;
-        ret |= CAEN_DGTZ_GetPostTriggerSize(handle, &pt);
-        WDcfg.PostTrigger = pt;
-    }
+    uint32_t pt;
+    ret |= CAEN_DGTZ_GetPostTriggerSize(handle, &pt);
+    WDcfg.PostTrigger = pt;
     ret |= CAEN_DGTZ_SetIOLevel(handle, WDcfg.FPIOtype);
     if( WDcfg.InterruptNumEvents > 0) {
         // Interrupt handling
@@ -329,31 +280,19 @@ int ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t B
     ret |= CAEN_DGTZ_SetAcquisitionMode(handle, CAEN_DGTZ_SW_CONTROLLED);
     ret |= CAEN_DGTZ_SetExtTriggerInputMode(handle, WDcfg.ExtTriggerMode);
 
-    if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE)){
+    if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE){
         ret |= CAEN_DGTZ_SetGroupEnableMask(handle, WDcfg.EnableMask);
         for(i=0; i<(WDcfg.Nch/8); i++) {
             if (WDcfg.EnableMask & (1<<i)) {
-                if (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) {
-                    for(j=0; j<8; j++) {
-                        if (WDcfg.DCoffsetGrpCh[i][j] != -1)
-                            ret |= CAEN_DGTZ_SetChannelDCOffset(handle,(i*8)+j, WDcfg.DCoffsetGrpCh[i][j]);
-						else
-                            ret |= CAEN_DGTZ_SetChannelDCOffset(handle, (i * 8) + j, WDcfg.DCoffset[i]);
-
-                    }
-                }
-                else {
-                    if(WDcfg.Version_used[i] == 1)
-						ret |= Set_calibrated_DCO(handle, i, &WDcfg, BoardInfo);
-					else
-						ret |= CAEN_DGTZ_SetGroupDCOffset(handle, i, WDcfg.DCoffset[i]);
-                    ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, WDcfg.ChannelTriggerMode[i], (1<<i));
-                    ret |= CAEN_DGTZ_SetGroupTriggerThreshold(handle, i, WDcfg.Threshold[i]);
-                    ret |= CAEN_DGTZ_SetChannelGroupMask(handle, i, WDcfg.GroupTrgEnableMask[i]);
-                } 
-                ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, WDcfg.PulsePolarity[i]); //.TriggerEdge
-
+                if(WDcfg.Version_used[i] == 1)
+                    ret |= Set_calibrated_DCO(handle, i, &WDcfg, BoardInfo);
+                else
+                    ret |= CAEN_DGTZ_SetGroupDCOffset(handle, i, WDcfg.DCoffset[i]);
+                ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, WDcfg.ChannelTriggerMode[i], (1<<i));
+                ret |= CAEN_DGTZ_SetGroupTriggerThreshold(handle, i, WDcfg.Threshold[i]);
+                ret |= CAEN_DGTZ_SetChannelGroupMask(handle, i, WDcfg.GroupTrgEnableMask[i]);
             }
+            ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, WDcfg.PulsePolarity[i]); //.TriggerEdge
         }
     } else {
         ret |= CAEN_DGTZ_SetChannelEnableMask(handle, WDcfg.EnableMask);
@@ -398,13 +337,6 @@ int ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t B
                     ret |= CAEN_DGTZ_SetChannelSelfTrigger(handle, mode, pair_chmask);
                 }
             }
-        }
-    }
-    if (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) {
-        for(i=0; i<(WDcfg.Nch/8); i++) {
-            ret |= CAEN_DGTZ_SetDRS4SamplingFrequency(handle, WDcfg.DRS4Frequency);
-            ret |= CAEN_DGTZ_SetGroupFastTriggerDCOffset(handle,i,WDcfg.FTDCoffset[i]);
-            ret |= CAEN_DGTZ_SetGroupFastTriggerThreshold(handle,i,WDcfg.FTThreshold[i]);
         }
     }
 
@@ -1232,10 +1164,8 @@ void CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *W
     c = getch();
     if ((c < '9') && (c >= '0')) {
         int ch = c-'0';
-        if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE)){
-            if ( (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) && (WDcfg->FastTriggerEnabled == 0) && (ch == 8)) WDrun->ChannelPlotMask = WDrun->ChannelPlotMask ;
-			else WDrun->ChannelPlotMask ^= (1 << ch);
-            
+        if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE){
+            WDrun->ChannelPlotMask ^= (1 << ch);
 			if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) && (ch == 8)) printf("Channel %d belongs to a different group\n", ch + WDrun->GroupPlotIndex * 8);
 			else
 			if (WDrun->ChannelPlotMask & (1 << ch))
@@ -1335,8 +1265,7 @@ void CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *W
         case 's' :
             if (WDrun->AcqRun == 0) {
 
-				if (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE)//XX742 not considered
-					Set_relative_Threshold(handle, WDcfg, BoardInfo);
+                Set_relative_Threshold(handle, WDcfg, BoardInfo);
 
 				if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE)
 					WDrun->GroupPlotSwitch = 0;
@@ -1386,7 +1315,7 @@ void CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *W
 				getch();
 				if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)//XX740 specific
 					Calibrate_XX740_DC_Offset(handle, WDcfg, BoardInfo);
-				else if (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE)//XX742 not considered
+                else
 					Calibrate_DC_Offset(handle, WDcfg, BoardInfo);
 
 				int i = 0;
@@ -1537,141 +1466,6 @@ int WriteOutputFiles(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_DGTZ_Ev
 
 }
 
-/*! \brief   Write the event data on x742 boards into the output files
-*
-*   \param   WDrun Pointer to the WaveDumpRun data structure
-*   \param   WDcfg Pointer to the WaveDumpConfig data structure
-*   \param   EventInfo Pointer to the EventInfo data structure
-*   \param   Event Pointer to the Event to write
-*/
-int WriteOutputFilesx742(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_DGTZ_EventInfo_t *EventInfo, CAEN_DGTZ_X742_EVENT_t *Event)
-{
-    int gr,ch, j, ns;
-    char trname[10], flag = 0; 
-    for (gr=0;gr<(WDcfg->Nch/8);gr++) {
-        if (Event->GrPresent[gr]) {
-            for(ch=0; ch<9; ch++) {
-                int Size = Event->DataGroup[gr].ChSize[ch];
-                if (Size <= 0) {
-                    continue;
-                }
-
-                // Check the file format type
-                if( WDcfg->OutFileFlags& OFF_BINARY) {
-                    // Binary file format
-                    uint32_t BinHeader[6];
-                    BinHeader[0] = (WDcfg->Nbit == 8) ? Size + 6*sizeof(*BinHeader) : Size*4 + 6*sizeof(*BinHeader);
-                    BinHeader[1] = EventInfo->BoardId;
-                    BinHeader[2] = EventInfo->Pattern;
-                    BinHeader[3] = ch;
-                    BinHeader[4] = EventInfo->EventCounter;
-                    BinHeader[5] = EventInfo->TriggerTimeTag;
-                    if (!WDrun->fout[(gr*9+ch)]) {
-                        char fname[100];
-                        if ((gr*9+ch) == 8) {
-                            sprintf(fname, "TR_%d_0.dat", gr);
-                            sprintf(trname,"TR_%d_0",gr);
-                            flag = 1;
-                        }
-                        else if ((gr*9+ch) == 17) {
-                            sprintf(fname, "TR_0_%d.dat", gr);
-                            sprintf(trname,"TR_0_%d",gr);
-                            flag = 1;
-                        }
-                        else if ((gr*9+ch) == 26) {
-                            sprintf(fname, "TR_0_%d.dat", gr);
-                            sprintf(trname,"TR_0_%d",gr);
-                            flag = 1;
-                        }
-                        else if ((gr*9+ch) == 35) {
-                            sprintf(fname, "TR_1_%d.dat", gr);
-                            sprintf(trname,"TR_1_%d",gr);
-                            flag = 1;
-                        }
-                        else 	{
-                            sprintf(fname, "wave_%d.dat", (gr*8)+ch);
-                            flag = 0;
-                        }
-                        if ((WDrun->fout[(gr*9+ch)] = fopen(fname, "wb")) == NULL)
-                            return -1;
-                    }
-                    if( WDcfg->OutFileFlags & OFF_HEADER) {
-                        // Write the Channel Header
-                        if(fwrite(BinHeader, sizeof(*BinHeader), 6, WDrun->fout[(gr*9+ch)]) != 6) {
-                            // error writing to file
-                            fclose(WDrun->fout[(gr*9+ch)]);
-                            WDrun->fout[(gr*9+ch)]= NULL;
-                            return -1;
-                        }
-                    }
-                    ns = (int)fwrite( Event->DataGroup[gr].DataChannel[ch] , 1 , Size*4, WDrun->fout[(gr*9+ch)]) / 4;
-                    if (ns != Size) {
-                        // error writing to file
-                        fclose(WDrun->fout[(gr*9+ch)]);
-                        WDrun->fout[(gr*9+ch)]= NULL;
-                        return -1;
-                    }
-                } else {
-                    // Ascii file format
-                    if (!WDrun->fout[(gr*9+ch)]) {
-                        char fname[100];
-                        if ((gr*9+ch) == 8) {
-                            sprintf(fname, "TR_%d_0.txt", gr);
-                            sprintf(trname,"TR_%d_0",gr);
-                            flag = 1;
-                        }
-                        else if ((gr*9+ch) == 17) {
-                            sprintf(fname, "TR_0_%d.txt", gr);
-                            sprintf(trname,"TR_0_%d",gr);
-                            flag = 1;
-                        }
-                        else if ((gr*9+ch) == 26) {
-                            sprintf(fname, "TR_0_%d.txt", gr);
-                            sprintf(trname,"TR_0_%d",gr);
-                            flag = 1;
-                        }
-                        else if ((gr*9+ch) == 35) {
-                            sprintf(fname, "TR_1_%d.txt", gr);
-                            sprintf(trname,"TR_1_%d",gr);
-                            flag = 1;
-                        }
-                        else 	{
-                            sprintf(fname, "wave_%d.txt", (gr*8)+ch);
-                            flag = 0;
-                        }
-                        if ((WDrun->fout[(gr*9+ch)] = fopen(fname, "w")) == NULL)
-                            return -1;
-                    }
-                    if( WDcfg->OutFileFlags & OFF_HEADER) {
-                        // Write the Channel Header
-                        fprintf(WDrun->fout[(gr*9+ch)], "Record Length: %d\n", Size);
-                        fprintf(WDrun->fout[(gr*9+ch)], "BoardID: %2d\n", EventInfo->BoardId);
-                        if (flag)
-                            fprintf(WDrun->fout[(gr*9+ch)], "Channel: %s\n",  trname);
-                        else
-                            fprintf(WDrun->fout[(gr*9+ch)], "Channel: %d\n",  (gr*8)+ ch);
-                        fprintf(WDrun->fout[(gr*9+ch)], "Event Number: %d\n", EventInfo->EventCounter);
-                        fprintf(WDrun->fout[(gr*9+ch)], "Pattern: 0x%04X\n", EventInfo->Pattern & 0xFFFF);
-                        fprintf(WDrun->fout[(gr*9+ch)], "Trigger Time Stamp: %u\n", Event->DataGroup[gr].TriggerTimeTag);
-                        fprintf(WDrun->fout[(gr*9+ch)], "DC offset (DAC): 0x%04X\n", WDcfg->DCoffset[ch] & 0xFFFF);
-                        fprintf(WDrun->fout[(gr*9+ch)], "Start Index Cell: %d\n", Event->DataGroup[gr].StartIndexCell);
-                        flag = 0;
-                    }
-                    for(j=0; j<Size; j++) {
-                        fprintf(WDrun->fout[(gr*9+ch)], "%f\n", Event->DataGroup[gr].DataChannel[ch][j]);
-                    }
-                }
-                if (WDrun->SingleWrite) {
-                    fclose(WDrun->fout[(gr*9+ch)]);
-                    WDrun->fout[(gr*9+ch)]= NULL;
-                }
-            }
-        }
-    }
-    return 0;
-
-}
-
 /* ########################################################################### */
 /* MAIN                                                                        */
 /* ########################################################################### */
@@ -1696,10 +1490,8 @@ int oldMain(int argc, char *argv[])
     CAEN_DGTZ_UINT16_EVENT_t    *Event16=NULL; /* generic event struct with 16 bit data (10, 12, 14 and 16 bit digitizers */
 
     CAEN_DGTZ_UINT8_EVENT_t     *Event8=NULL; /* generic event struct with 8 bit data (only for 8 bit digitizers) */ 
-    CAEN_DGTZ_X742_EVENT_t       *Event742=NULL;  /* custom event struct with 8 bit data (only for 8 bit digitizers) */
     WDPlot_t                    *PlotVar=NULL;
     FILE *f_ini;
-    CAEN_DGTZ_DRS4Correction_t X742Tables[MAX_X742_GROUP_SIZE];
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
 
@@ -1762,18 +1554,7 @@ int oldMain(int argc, char *argv[])
 
 	if (argc <= 1){//detect if connected board needs a specific configuration file, only if the user did not specify his configuration file
 		int use_specific_file = 0;
-		//Check if model x742 is in use --> use its specific configuration file
-		if (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) {
-		
-#ifdef LINUX 
-			strcpy(ConfigFileName, "/etc/wavedump/WaveDumpConfig_X742.txt");
-#else
-			strcpy(ConfigFileName, "WaveDumpConfig_X742.txt");			
-#endif
-			printf("\nWARNING: using configuration file %s specific for Board model X742.\nEdit this file if you want to modify the default settings.\n ", ConfigFileName);
-			use_specific_file = 1;
-		}//Check if model x740 is in use --> use its specific configuration file
-		else if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) {
+        if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) {
 
 #ifdef LINUX 
 			strcpy(ConfigFileName, "/etc/wavedump/WaveDumpConfig_X740.txt");
@@ -1811,8 +1592,7 @@ int oldMain(int argc, char *argv[])
 		WDcfg.DAC_Calib.offset[i] = 0;
 	}
 	//load DAC calibration data (if present in flash)
-	if (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE)//XX742 not considered
-		Load_DAC_Calibration_From_Flash(handle, &WDcfg, BoardInfo);
+    Load_DAC_Calibration_From_Flash(handle, &WDcfg, BoardInfo);
 
     // Perform calibration (if needed).
     if (WDcfg.StartupCalibration)
@@ -1820,7 +1600,7 @@ int oldMain(int argc, char *argv[])
 
 Restart:
     // mask the channels not available for this model
-    if ((BoardInfo.FamilyCode != CAEN_DGTZ_XX740_FAMILY_CODE) && (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE)){
+    if (BoardInfo.FamilyCode != CAEN_DGTZ_XX740_FAMILY_CODE){
         WDcfg.EnableMask &= (1<<WDcfg.Nch)-1;
     } else {
         WDcfg.EnableMask &= (1<<(WDcfg.Nch/8))-1;
@@ -1832,7 +1612,7 @@ Restart:
         WDcfg.EnableMask &= 0x55;
     }
     // Set plot mask
-    if ((BoardInfo.FamilyCode != CAEN_DGTZ_XX740_FAMILY_CODE) && (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE)){
+    if (BoardInfo.FamilyCode != CAEN_DGTZ_XX740_FAMILY_CODE){
         WDrun.ChannelPlotMask = WDcfg.EnableMask;
     } else {
         WDrun.ChannelPlotMask = (WDcfg.FastTriggerEnabled == 0) ? 0xFF: 0x1FF;
@@ -1850,7 +1630,7 @@ Restart:
     }
 
     // Select the next enabled group for plotting
-    if ((WDcfg.EnableMask) && (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE))
+    if ((WDcfg.EnableMask) && (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE))
         if( ((WDcfg.EnableMask>>WDrun.GroupPlotIndex)&0x1)==0 )
             GoToNextEnabledGroup(&WDrun, &WDcfg);
 
@@ -1868,52 +1648,13 @@ Restart:
             goto QuitProgram;
         }
 
-        // Reload Correction Tables if changed
-        if(BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE && (ReloadCfgStatus & (0x1 << CFGRELOAD_CORRTABLES_BIT)) ) {
-            if(WDcfg.useCorrections != -1) { // Use Manual Corrections
-                uint32_t GroupMask = 0;
-
-                // Disable Automatic Corrections
-                if ((ret = CAEN_DGTZ_DisableDRS4Correction(handle)) != CAEN_DGTZ_Success)
-                    goto QuitProgram;
-
-                // Load the Correction Tables from the Digitizer flash
-                if ((ret = CAEN_DGTZ_GetCorrectionTables(handle, WDcfg.DRS4Frequency, (void*)X742Tables)) != CAEN_DGTZ_Success)
-                    goto QuitProgram;
-
-                if(WDcfg.UseManualTables != -1) { // The user wants to use some custom tables
-                    uint32_t gr;
-                    GroupMask = WDcfg.UseManualTables;
-
-                    for(gr = 0; gr < WDcfg.MaxGroupNumber; gr++) {
-                        if (((GroupMask>>gr)&0x1) == 0)
-                            continue;
-                        LoadCorrectionTable(WDcfg.TablesFilenames[gr], &(X742Tables[gr]));
-                    }
-                }
-                // Save to file the Tables read from flash
-                GroupMask = (~GroupMask) & ((0x1<<WDcfg.MaxGroupNumber)-1);
-                SaveCorrectionTables("X742Table", GroupMask, X742Tables);
-            }
-            else { // Use Automatic Corrections
-                if ((ret = CAEN_DGTZ_LoadDRS4CorrectionData(handle, WDcfg.DRS4Frequency)) != CAEN_DGTZ_Success)
-                    goto QuitProgram;
-                if ((ret = CAEN_DGTZ_EnableDRS4Correction(handle)) != CAEN_DGTZ_Success)
-                    goto QuitProgram;
-            }
-        }
     }
 
     // Allocate memory for the event data and readout buffer
     if(WDcfg.Nbit == 8)
         ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event8);
     else {
-        if (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE) {
-            ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
-        }
-        else {
-            ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event742);
-        }
+        ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
     }
     if (ret != CAEN_DGTZ_Success) {
         ErrCode = ERR_MALLOC;
@@ -1932,8 +1673,7 @@ Restart:
 #else
 		usleep(300000);
 #endif
-		if (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE)//XX742 not considered
-			Set_relative_Threshold(handle, &WDcfg, BoardInfo);
+        Set_relative_Threshold(handle, &WDcfg, BoardInfo);
 
 		CAEN_DGTZ_SWStartAcquisition(handle);
 	}
@@ -1955,12 +1695,7 @@ Restart:
             if(WDcfg.Nbit == 8)
                 CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
             else
-                if (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE) {
-                    CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
-                }
-                else {
-                    CAEN_DGTZ_FreeEvent(handle, (void**)&Event742);
-                }
+                CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
                 f_ini = fopen(ConfigFileName, "r");
                 ReloadCfgStatus = ParseConfigFile(f_ini, &WDcfg);
                 fclose(f_ini);
@@ -2066,20 +1801,7 @@ InterruptTimeout:
             if (WDcfg.Nbit == 8) 
                 ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event8);
             else
-                if (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE) {
-                    ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
-                }
-                else {
-                    ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event742);
-                    if (WDcfg.useCorrections != -1) { // if manual corrections
-                        uint32_t gr;
-                        for (gr = 0; gr < WDcfg.MaxGroupNumber; gr++) {
-                            if ( ((WDcfg.EnableMask >> gr) & 0x1) == 0)
-                                continue;
-                            ApplyDataCorrection( &(X742Tables[gr]), WDcfg.DRS4Frequency, WDcfg.useCorrections, &(Event742->DataGroup[gr]));
-                        }
-                    }
-                }
+                ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
                 if (ret) {
                     ErrCode = ERR_EVENT_BUILD;
                     goto QuitProgram;
@@ -2088,7 +1810,7 @@ InterruptTimeout:
                 /* Update Histograms */
                 if (WDrun.RunHisto) {
                     for(ch=0; ch<WDcfg.Nch; ch++) {
-                        int chmask = ((BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) )? (ch/8) : ch;
+                        int chmask = (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)? (ch/8) : ch;
                         if (!(EventInfo.ChannelMask & (1<<chmask)))
                             continue;
                         if (WDrun.Histogram[ch] == NULL) {
@@ -2102,16 +1824,8 @@ InterruptTimeout:
                             for(i=0; i<(int)Event8->ChSize[ch]; i++)
                                 WDrun.Histogram[ch][Event8->DataChannel[ch][i]]++;
                         else {
-                            if (BoardInfo.FamilyCode != CAEN_DGTZ_XX742_FAMILY_CODE) {
-                                for(i=0; i<(int)Event16->ChSize[ch]; i++)
-                                    WDrun.Histogram[ch][Event16->DataChannel[ch][i]]++;
-                            }
-                            else {
-                                printf("Can't build samples histogram for this board: it has float samples.\n");
-                                WDrun.RunHisto = 0;
-								WDrun.PlotType = PLOT_WAVEFORMS;
-                                break;
-                            }
+                            for(i=0; i<(int)Event16->ChSize[ch]; i++)
+                                WDrun.Histogram[ch][Event16->DataChannel[ch][i]]++;
                         }
                     }
                 }
@@ -2119,10 +1833,7 @@ InterruptTimeout:
                 /* Write Event data to file */
                 if (WDrun.ContinuousWrite || WDrun.SingleWrite) {
                     // Note: use a thread here to allow parallel readout and file writing
-                    if (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) {	
-                        ret = WriteOutputFilesx742(&WDcfg, &WDrun, &EventInfo, Event742); 
-                    }
-                    else if (WDcfg.Nbit == 8) {
+                    if (WDcfg.Nbit == 8) {
                         ret = WriteOutputFiles(&WDcfg, &WDrun, &EventInfo, Event8);
                     }
                     else {
@@ -2141,7 +1852,6 @@ InterruptTimeout:
                 /* Plot Waveforms */
                 if ((WDrun.ContinuousPlot || WDrun.SinglePlot) && !IsPlotterBusy()) {
                     int Ntraces = (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) ? 8 : WDcfg.Nch;
-                    if (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) Ntraces = 9;
                     if (PlotVar == NULL) {
                         int TraceLength = max(WDcfg.RecordLength, (uint32_t)(1 << WDcfg.Nbit));
                         PlotVar = OpenPlotter(WDcfg.GnuPlotPath, Ntraces, TraceLength);
@@ -2154,16 +1864,7 @@ InterruptTimeout:
                     } else {
                         int Tn = 0;
                         if (WDrun.SetPlotOptions) {
-                            if ((WDrun.PlotType == PLOT_WAVEFORMS) && (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE)) {
-                                strcpy(PlotVar->Title, "Waveform");
-                                PlotVar->Xscale = WDcfg.Ts;
-                                strcpy(PlotVar->Xlabel, "ns");
-                                strcpy(PlotVar->Ylabel, "ADC counts");
-                                PlotVar->Yautoscale = 0;
-                                PlotVar->Ymin = 0;
-                                PlotVar->Ymax = (float)(1<<WDcfg.Nbit);
-                                PlotVar->Xautoscale = 1;
-                            } else if (WDrun.PlotType == PLOT_WAVEFORMS) {
+                            if (WDrun.PlotType == PLOT_WAVEFORMS) {
                                 strcpy(PlotVar->Title, "Waveform");
                                 PlotVar->Xscale = WDcfg.Ts * WDcfg.DecimationFactor/1000;
                                 strcpy(PlotVar->Xlabel, "us");
@@ -2196,19 +1897,13 @@ InterruptTimeout:
 
                             if (!((WDrun.ChannelPlotMask >> ch) & 1))
                                 continue;
-                            if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) && ((ch != 0) && (absCh % 8) == 0)) sprintf(PlotVar->TraceName[Tn], "TR %d", (int)((absCh-1) / 16));
-                            else sprintf(PlotVar->TraceName[Tn], "CH %d", absCh);
+
+                            sprintf(PlotVar->TraceName[Tn], "CH %d", absCh);
                             if (WDrun.PlotType == PLOT_WAVEFORMS) {
                                 if (WDcfg.Nbit == 8) {
                                     PlotVar->TraceSize[Tn] = Event8->ChSize[absCh];
                                     memcpy(PlotVar->TraceData[Tn], Event8->DataChannel[absCh], Event8->ChSize[absCh]);
                                     PlotVar->DataType = PLOT_DATA_UINT8;
-                                } else if (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) {
-                                    if (Event742->GrPresent[WDrun.GroupPlotIndex]) { 
-                                        PlotVar->TraceSize[Tn] = Event742->DataGroup[WDrun.GroupPlotIndex].ChSize[ch];
-                                        memcpy(PlotVar->TraceData[Tn], Event742->DataGroup[WDrun.GroupPlotIndex].DataChannel[ch], Event742->DataGroup[WDrun.GroupPlotIndex].ChSize[ch] * sizeof(float));
-                                        PlotVar->DataType = PLOT_DATA_FLOAT;
-                                    }
                                 }
                                 else {
                                     PlotVar->TraceSize[Tn] = Event16->ChSize[absCh];
@@ -2220,10 +1915,6 @@ InterruptTimeout:
                                 PlotVar->DataType = PLOT_DATA_DOUBLE;
                                 if(WDcfg.Nbit == 8)
                                     FFTns = FFT(Event8->DataChannel[absCh], PlotVar->TraceData[Tn], Event8->ChSize[absCh], HANNING_FFT_WINDOW, SAMPLETYPE_UINT8);
-                                else if (BoardInfo.FamilyCode == CAEN_DGTZ_XX742_FAMILY_CODE) {
-                                    FFTns = FFT(Event742->DataGroup[WDrun.GroupPlotIndex].DataChannel[ch], PlotVar->TraceData[Tn],
-                                        Event742->DataGroup[WDrun.GroupPlotIndex].ChSize[ch], HANNING_FFT_WINDOW, SAMPLETYPE_FLOAT);
-                                }
                                 else
                                     FFTns = FFT(Event16->DataChannel[absCh], PlotVar->TraceData[Tn], Event16->ChSize[absCh], HANNING_FFT_WINDOW, SAMPLETYPE_UINT16);
                                 PlotVar->Xscale = (1000/WDcfg.Ts)/(2*FFTns);
