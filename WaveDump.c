@@ -44,7 +44,6 @@
 #include <CAENDigitizer.h>
 #include "WaveDump.h"
 #include "WDconfig.h"
-#include "WDplot.h"
 #include "keyb.h"
 
 extern int dc_file[MAX_CH];
@@ -365,7 +364,6 @@ void GoToNextEnabledGroup(WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg) {
             printf("Plot group set to %d\n", WDrun->GroupPlotIndex);
         }
     }
-    ClearPlot();
 }
 
 /*! \brief   return TRUE if board descriped by 'BoardInfo' supports
@@ -1489,7 +1487,6 @@ int oldMain(int argc, char *argv[])
     CAEN_DGTZ_UINT16_EVENT_t    *Event16=NULL; /* generic event struct with 16 bit data (10, 12, 14 and 16 bit digitizers */
 
     CAEN_DGTZ_UINT8_EVENT_t     *Event8=NULL; /* generic event struct with 8 bit data (only for 8 bit digitizers) */ 
-    WDPlot_t                    *PlotVar=NULL;
     FILE *f_ini;
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
@@ -1689,8 +1686,6 @@ Restart:
         if (WDrun.Restart) {
             CAEN_DGTZ_SWStopAcquisition(handle);
             CAEN_DGTZ_FreeReadoutBuffer(&buffer);
-            ClosePlotter();
-            PlotVar = NULL;
             if(WDcfg.Nbit == 8)
                 CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
             else
@@ -1847,86 +1842,6 @@ InterruptTimeout:
                         WDrun.SingleWrite = 0;
                     }
                 }
-
-                /* Plot Waveforms */
-                if ((WDrun.ContinuousPlot || WDrun.SinglePlot) && !IsPlotterBusy()) {
-                    int Ntraces = (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) ? 8 : WDcfg.Nch;
-                    if (PlotVar == NULL) {
-                        int TraceLength = max(WDcfg.RecordLength, (uint32_t)(1 << WDcfg.Nbit));
-                        PlotVar = OpenPlotter(WDcfg.GnuPlotPath, Ntraces, TraceLength);
-                        WDrun.SetPlotOptions = 1;
-                    }
-                    if (PlotVar == NULL) {
-                        printf("Can't open the plotter\n");
-                        WDrun.ContinuousPlot = 0;
-                        WDrun.SinglePlot = 0;
-                    } else {
-                        int Tn = 0;
-                        if (WDrun.SetPlotOptions) {
-                            if (WDrun.PlotType == PLOT_WAVEFORMS) {
-                                strcpy(PlotVar->Title, "Waveform");
-                                PlotVar->Xscale = WDcfg.Ts * WDcfg.DecimationFactor/1000;
-                                strcpy(PlotVar->Xlabel, "us");
-                                strcpy(PlotVar->Ylabel, "ADC counts");
-                                PlotVar->Yautoscale = 0;
-                                PlotVar->Ymin = 0;
-                                PlotVar->Ymax = (float)(1<<WDcfg.Nbit);
-                                PlotVar->Xautoscale = 1;
-                            }  else if (WDrun.PlotType == PLOT_FFT) {
-                                strcpy(PlotVar->Title, "FFT");
-                                strcpy(PlotVar->Xlabel, "MHz");
-                                strcpy(PlotVar->Ylabel, "dB");
-                                PlotVar->Yautoscale = 1;
-                                PlotVar->Ymin = -160;
-                                PlotVar->Ymax = 0;
-                                PlotVar->Xautoscale = 1;
-                            } else if (WDrun.PlotType == PLOT_HISTOGRAM) {
-                                PlotVar->Xscale = 1.0;
-								strcpy(PlotVar->Title, "Histogram");
-                                strcpy(PlotVar->Xlabel, "ADC channels");
-                                strcpy(PlotVar->Ylabel, "Counts");
-                                PlotVar->Yautoscale = 1;
-                                PlotVar->Xautoscale = 1;
-                            }
-                            SetPlotOptions();
-                            WDrun.SetPlotOptions = 0;
-                        }
-                        for(ch=0; ch<Ntraces; ch++) {
-                            int absCh = WDrun.GroupPlotIndex * 8 + ch;
-
-                            if (!((WDrun.ChannelPlotMask >> ch) & 1))
-                                continue;
-
-                            sprintf(PlotVar->TraceName[Tn], "CH %d", absCh);
-                            if (WDrun.PlotType == PLOT_WAVEFORMS) {
-                                if (WDcfg.Nbit == 8) {
-                                    PlotVar->TraceSize[Tn] = Event8->ChSize[absCh];
-                                    memcpy(PlotVar->TraceData[Tn], Event8->DataChannel[absCh], Event8->ChSize[absCh]);
-                                    PlotVar->DataType = PLOT_DATA_UINT8;
-                                }
-                                else {
-                                    PlotVar->TraceSize[Tn] = Event16->ChSize[absCh];
-                                    memcpy(PlotVar->TraceData[Tn], Event16->DataChannel[absCh], Event16->ChSize[absCh] * 2);
-                                    PlotVar->DataType = PLOT_DATA_UINT16;
-                                }  
-                            }  else if (WDrun.PlotType == PLOT_HISTOGRAM) {
-                                PlotVar->DataType = PLOT_DATA_UINT32;
-                                strcpy(PlotVar->Title, "Histogram");
-                                PlotVar->TraceSize[Tn] = 1<<WDcfg.Nbit;
-                                memcpy(PlotVar->TraceData[Tn], WDrun.Histogram[absCh], (uint64_t)(1<<WDcfg.Nbit) * sizeof(uint32_t));
-                            }
-                            Tn++;
-                            if (Tn >= MAX_NUM_TRACES)
-                                break;
-                        }
-                        PlotVar->NumTraces = Tn;
-                        if( PlotWaveforms() < 0) {
-                            WDrun.ContinuousPlot = 0;
-                            printf("Plot Error\n");
-                        }
-                        WDrun.SinglePlot = 0;
-                    }
-                }
         }
     }
     ErrCode = ERR_NONE;
@@ -1942,10 +1857,6 @@ QuitProgram:
 
     /* stop the acquisition */
     CAEN_DGTZ_SWStopAcquisition(handle);
-
-    /* close the plotter */
-    if (PlotVar)
-        ClosePlotter();
 
     /* close the output files and free histograms*/
     for (ch = 0; ch < WDcfg.Nch; ch++) {

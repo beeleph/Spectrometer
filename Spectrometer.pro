@@ -17,7 +17,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     WDconfig.c \
-    WDplot.c \
     WaveDump.c \
     flash.c \
     keyb.c \
@@ -30,7 +29,6 @@ HEADERS += \
     CAENDigitizer.h \
     CAENDigitizerType.h \
     WDconfig.h \
-    WDplot.h \
     WaveDump.h \
     flash.h \
     flash_opcodes.h \
