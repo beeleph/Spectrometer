@@ -45,7 +45,6 @@
 #include "WaveDump.h"
 #include "WDconfig.h"
 #include "WDplot.h"
-#include "fft.h"
 #include "keyb.h"
 
 extern int dc_file[MAX_CH];
@@ -1910,16 +1909,7 @@ InterruptTimeout:
                                     memcpy(PlotVar->TraceData[Tn], Event16->DataChannel[absCh], Event16->ChSize[absCh] * 2);
                                     PlotVar->DataType = PLOT_DATA_UINT16;
                                 }  
-                            } else if (WDrun.PlotType == PLOT_FFT) {
-                                int FFTns;
-                                PlotVar->DataType = PLOT_DATA_DOUBLE;
-                                if(WDcfg.Nbit == 8)
-                                    FFTns = FFT(Event8->DataChannel[absCh], PlotVar->TraceData[Tn], Event8->ChSize[absCh], HANNING_FFT_WINDOW, SAMPLETYPE_UINT8);
-                                else
-                                    FFTns = FFT(Event16->DataChannel[absCh], PlotVar->TraceData[Tn], Event16->ChSize[absCh], HANNING_FFT_WINDOW, SAMPLETYPE_UINT16);
-                                PlotVar->Xscale = (1000/WDcfg.Ts)/(2*FFTns);
-                                PlotVar->TraceSize[Tn] = FFTns;
-                            } else if (WDrun.PlotType == PLOT_HISTOGRAM) {
+                            }  else if (WDrun.PlotType == PLOT_HISTOGRAM) {
                                 PlotVar->DataType = PLOT_DATA_UINT32;
                                 strcpy(PlotVar->Title, "Histogram");
                                 PlotVar->TraceSize[Tn] = 1<<WDcfg.Nbit;

@@ -19,7 +19,6 @@ SOURCES += \
     WDconfig.c \
     WDplot.c \
     WaveDump.c \
-    fft.c \
     flash.c \
     keyb.c \
     main.cpp \
@@ -33,7 +32,6 @@ HEADERS += \
     WDconfig.h \
     WDplot.h \
     WaveDump.h \
-    fft.h \
     flash.h \
     flash_opcodes.h \
     keyb.h \
