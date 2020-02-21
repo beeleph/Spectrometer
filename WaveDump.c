@@ -44,7 +44,6 @@
 #include <CAENDigitizer.h>
 #include "WaveDump.h"
 #include "WDconfig.h"
-#include "keyb.h"
 
 extern int dc_file[MAX_CH];
 extern int thr_file[MAX_CH];

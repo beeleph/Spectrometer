@@ -19,7 +19,6 @@ SOURCES += \
     WDconfig.c \
     WaveDump.c \
     flash.c \
-    keyb.c \
     main.cpp \
     mainwindow.cpp \
     spi.c
@@ -32,7 +31,6 @@ HEADERS += \
     WaveDump.h \
     flash.h \
     flash_opcodes.h \
-    keyb.h \
     mainwindow.h \
     spi.h
 
