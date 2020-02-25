@@ -15,3 +15,5 @@ Todo:
 
 Непонятки:
 1. Зачем нужен allocateevent и malloc на приборе?
+
+S
