@@ -1,12 +1,14 @@
 #include "mainwindow.h"
 
 #include <QApplication>
+#include <WaveDump.h>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
+    //oldMain();
     return a.exec();
 }
 
@@ -16,6 +18,10 @@ int main(int argc, char *argv[])
  *  Почистить все лишнее.
  *  Собрать!
  *
+ *  Кидать "снизу" throw?
+ * сверху ловить try/catch?
  *
+ *  По-хорошему надо и вдконфиг и вдамп переводить в классы наследуемые от QObject.
+ * Все равно я буду использовать КЬЮшные методы для работы с конфигом, а также будет удобнее выводить дебаг инфу.
  *
 */

@@ -6,6 +6,7 @@ You need dll's in .exe folder to actually run the program.
 При разработке интерфейса ориентироваться на CheckKeyboardCommands в wavedump.c
 
 Todo:
+Convert wavedump, wdconfig to C++ classes QObject
 1. Delete WDconfig later on
 2. Delete all da garbage.
 3. Fix da warnings.
