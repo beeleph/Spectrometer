@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include <cmath>
 //#include <fstream.h>
 #include <CAENDigitizer.h>
 #include <CAENDigitizerType.h>
@@ -175,4 +175,7 @@ public:
 
 
 };
+
+/* new things */
+CAEN_DGTZ_TriggerPolarity_t PulsePolarity_to_TriggerPolarity(CAEN_DGTZ_PulsePolarity_t pp);
 #endif /* _WAVEDUMP__H */
