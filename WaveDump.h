@@ -17,6 +17,8 @@
 #ifndef _WAVEDUMP_H_
 #define _WAVEDUMP_H_
 
+//#include <QWidget>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -84,15 +86,14 @@
    Typedefs
    ###########################################################################
 */
-
 typedef enum {
-	OFF_BINARY=	0x00000001,			// Bit 0: 1 = BINARY, 0 =ASCII
-	OFF_HEADER= 0x00000002,			// Bit 1: 1 = include header, 0 = just samples data
+    OFF_BINARY=	0x00000001,			// Bit 0: 1 = BINARY, 0 =ASCII
+    OFF_HEADER= 0x00000002,			// Bit 1: 1 = include header, 0 = just samples data
 } OUTFILE_FLAGS;
 
 typedef struct{
-	float cal[MAX_SET];
-	float offset[MAX_SET];
+    float cal[MAX_SET];
+    float offset[MAX_SET];
 }DAC_Calibration_data;
 
 typedef struct {
@@ -115,32 +116,31 @@ typedef struct {
     uint16_t EnableMask;
     char GnuPlotPath[1000];
     CAEN_DGTZ_TriggerMode_t ChannelTriggerMode[MAX_SET];
-	CAEN_DGTZ_PulsePolarity_t PulsePolarity[MAX_SET];
+    CAEN_DGTZ_PulsePolarity_t PulsePolarity[MAX_SET];
     uint32_t DCoffset[MAX_SET];
     int32_t  DCoffsetGrpCh[MAX_SET][MAX_SET];
     uint32_t Threshold[MAX_SET];
-	int Version_used[MAX_SET];
-	uint8_t GroupTrgEnableMask[MAX_SET];
+    int Version_used[MAX_SET];
+    uint8_t GroupTrgEnableMask[MAX_SET];
     uint32_t MaxGroupNumber;
-	
-	uint32_t FTDCoffset[MAX_SET];
-	uint32_t FTThreshold[MAX_SET];
-	CAEN_DGTZ_TriggerMode_t	FastTriggerMode;
-	uint32_t	 FastTriggerEnabled;
+
+    uint32_t FTDCoffset[MAX_SET];
+    uint32_t FTThreshold[MAX_SET];
+    CAEN_DGTZ_TriggerMode_t	FastTriggerMode;
+    uint32_t	 FastTriggerEnabled;
     int GWn;
     uint32_t GWaddr[MAX_GW];
     uint32_t GWdata[MAX_GW];
-	uint32_t GWmask[MAX_GW];
-	OUTFILE_FLAGS OutFileFlags;
-	uint16_t DecimationFactor;
+    uint32_t GWmask[MAX_GW];
+    OUTFILE_FLAGS OutFileFlags;
+    uint16_t DecimationFactor;
     int useCorrections;
     int UseManualTables;
     char TablesFilenames[MAX_X742_GROUP_SIZE][1000];
     CAEN_DGTZ_DRS4Frequency_t DRS4Frequency;
     int StartupCalibration;
-	DAC_Calibration_data DAC_Calib;
+    DAC_Calibration_data DAC_Calib;
 } WaveDumpConfig_t;
-
 
 typedef struct WaveDumpRun_t {
     int Quit;
@@ -153,7 +153,7 @@ typedef struct WaveDumpRun_t {
     int SinglePlot;
     int SetPlotOptions;
     int GroupPlotIndex;
-	int GroupPlotSwitch;
+    int GroupPlotSwitch;
     int ChannelPlotMask;
     int Restart;
     int RunHisto;
@@ -167,5 +167,12 @@ void Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_Board
 void Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
 void Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
 int Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-int oldMain(int argc, char *argv[]);
+class N6740 {
+    //Q_OBJECT
+
+public:
+    int oldMain(int argc, char *argv[]);
+
+
+};
 #endif /* _WAVEDUMP__H */
