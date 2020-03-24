@@ -584,16 +584,16 @@ void Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_Bo
 	CAEN_DGTZ_FreeReadoutBuffer(&buffer);
 
 	CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
-
-    ret |= CAEN_DGTZ_SetMaxNumEventsBLT(handle, WDcfg->NumEvents);
-	ret |= CAEN_DGTZ_SetDecimationFactor(handle,WDcfg->DecimationFactor);
-	ret |= CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg->PostTrigger);
-	ret |= CAEN_DGTZ_SetAcquisitionMode(handle, mem_mode);
-	ret |= CAEN_DGTZ_SetExtTriggerInputMode(handle, WDcfg->ExtTriggerMode);
-	ret |= CAEN_DGTZ_SetGroupEnableMask(handle, WDcfg->EnableMask);
+    // ret's was changed by me from |= to =. bcs cpp has problems with |=. it's not crucial
+    ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, WDcfg->NumEvents);
+    ret = CAEN_DGTZ_SetDecimationFactor(handle,WDcfg->DecimationFactor);
+    ret = CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg->PostTrigger);
+    ret = CAEN_DGTZ_SetAcquisitionMode(handle, mem_mode);
+    ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, WDcfg->ExtTriggerMode);
+    ret = CAEN_DGTZ_SetGroupEnableMask(handle, WDcfg->EnableMask);
 	for (i = 0; i < BoardInfo.Channels; i++) {
 		if (WDcfg->EnableMask & (1 << i))
-			ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, WDcfg->ChannelTriggerMode[i], (1 << i));
+            ret = CAEN_DGTZ_SetGroupSelfTrigger(handle, WDcfg->ChannelTriggerMode[i], (1 << i));
 	}
 	if (ret)
 		printf("Error setting recorded parameters\n");
@@ -1003,7 +1003,7 @@ void Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInf
 				int max = 0, ok = 0;
 				int mpp = 0;
 				int size = (int)pow(2, (double)BoardInfo.ADC_NBits);
-				int *freq = calloc(size, sizeof(int));
+                int *freq = (int*)calloc(size, sizeof(int));
 
 				//find most probable value mpp
 				for (k = 0; k < NACQS; k++) {
@@ -1050,13 +1050,13 @@ void Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInf
 		CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
 
 	//reset settings
-	ret |= CAEN_DGTZ_SetMaxNumEventsBLT(handle, WDcfg->NumEvents);
-	ret |= CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg->PostTrigger);
-	ret |= CAEN_DGTZ_SetAcquisitionMode(handle, mem_mode);
-	ret |= CAEN_DGTZ_SetExtTriggerInputMode(handle, WDcfg->ExtTriggerMode);
-	ret |= CAEN_DGTZ_SetChannelEnableMask(handle, WDcfg->EnableMask);
+    ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, WDcfg->NumEvents);
+    ret = CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg->PostTrigger);
+    ret = CAEN_DGTZ_SetAcquisitionMode(handle, mem_mode);
+    ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, WDcfg->ExtTriggerMode);
+    ret = CAEN_DGTZ_SetChannelEnableMask(handle, WDcfg->EnableMask);
 	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX724_FAMILY_CODE)
-		ret |= CAEN_DGTZ_SetDecimationFactor(handle, WDcfg->DecimationFactor);
+        ret = CAEN_DGTZ_SetDecimationFactor(handle, WDcfg->DecimationFactor);
 	if (ret)
 		printf("Error resetting some parameters after DAC calibration\n");
 
@@ -1080,14 +1080,14 @@ void Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInf
 				}
 
 				pair_chmask &= WDcfg->EnableMask;
-				ret |= CAEN_DGTZ_SetChannelSelfTrigger(handle, mode, pair_chmask);
+                ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, mode, pair_chmask);
 			}
 		}
 	}
 	else {
 		for (i = 0; i < WDcfg->Nch; i++) {
 			if (WDcfg->EnableMask & (1 << i))
-				ret |= CAEN_DGTZ_SetChannelSelfTrigger(handle, WDcfg->ChannelTriggerMode[i], (1 << i));
+                ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, WDcfg->ChannelTriggerMode[i], (1 << i));
 		}
 	}
 	if (ret)
@@ -1469,7 +1469,8 @@ int oldMain(int argc, char *argv[])
 {
     WaveDumpConfig_t   WDcfg;
     WaveDumpRun_t      WDrun;
-    CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
+    //CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
+    int ret = 0;
     int  handle = -1;
     ERROR_CODES ErrCode= ERR_NONE;
     int i, ch, Nb=0, Ne=0;
@@ -1520,7 +1521,7 @@ int oldMain(int argc, char *argv[])
     /* *************************************************************************************** */
     isVMEDevice = WDcfg.BaseAddress ? 1 : 0;
 
-    ret = CAEN_DGTZ_OpenDigitizer(WDcfg.LinkType, WDcfg.LinkNum, WDcfg.ConetNode, WDcfg.BaseAddress, &handle);
+    ret = CAEN_DGTZ_OpenDigitizer(int_to_ConnectionType(WDcfg.LinkType), WDcfg.LinkNum, WDcfg.ConetNode, WDcfg.BaseAddress, &handle);
     if (ret) {
         ErrCode = ERR_DGZ_OPEN;
         goto QuitProgram;
@@ -1807,7 +1808,7 @@ InterruptTimeout:
                         if (!(EventInfo.ChannelMask & (1<<chmask)))
                             continue;
                         if (WDrun.Histogram[ch] == NULL) {
-                            if ((WDrun.Histogram[ch] = malloc((uint64_t)(1<<WDcfg.Nbit) * sizeof(uint32_t))) == NULL) {
+                            if ((WDrun.Histogram[ch] = (uint32_t *)malloc((uint64_t)(1<<WDcfg.Nbit) * sizeof(uint32_t))) == NULL) {
                                 ErrCode = ERR_HISTO_MALLOC;
                                 goto QuitProgram;
                             }
@@ -1882,4 +1883,10 @@ CAEN_DGTZ_TriggerPolarity_t PulsePolarity_to_TriggerPolarity(CAEN_DGTZ_PulsePola
         return CAEN_DGTZ_TriggerOnFallingEdge;
     else
         return CAEN_DGTZ_TriggerOnRisingEdge;
+}
+CAEN_DGTZ_ConnectionType int_to_ConnectionType(int i){
+    if (i)
+        return CAEN_DGTZ_OpticalLink;
+    else
+        return CAEN_DGTZ_USB;
 }

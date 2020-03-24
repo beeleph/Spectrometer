@@ -41,10 +41,10 @@ static void SetDefaultConfiguration(WaveDumpConfig_t *WDcfg) {
     WDcfg->InterruptNumEvents = 0;
     WDcfg->TestPattern = 0;
 	WDcfg->DecimationFactor = 1;
-    WDcfg->DesMode = 0;
-	WDcfg->FastTriggerMode = 0; 
+    WDcfg->DesMode = CAEN_DGTZ_DISABLE;
+    WDcfg->FastTriggerMode = CAEN_DGTZ_TRGMODE_DISABLED;
     WDcfg->FastTriggerEnabled = 0; 
-	WDcfg->FPIOtype = 0;
+    WDcfg->FPIOtype = CAEN_DGTZ_IOLevel_NIM;
 
 	strcpy(WDcfg->GnuPlotPath, GNUPLOT_DEFAULT_PATH);
 	for(i=0; i<MAX_SET; i++) {
@@ -298,7 +298,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 		if (strstr(str, "ENABLE_DES_MODE")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
 			if (strcmp(str1, "YES")==0)
-				WDcfg->DesMode = 1;
+                WDcfg->DesMode = CAEN_DGTZ_ENABLE;
 			else if (strcmp(str1, "NO")!=0)
 				printf("%s: invalid option\n", str);
             if(PrevDesMode != WDcfg->DesMode)
@@ -310,7 +310,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 		if (strstr(str, "OUTPUT_FILE_FORMAT")!=NULL) {
 			read = fscanf(f_ini, "%s", str1);
 			if (strcmp(str1, "BINARY")==0)
-				WDcfg->OutFileFlags|= OFF_BINARY;
+                WDcfg->OutFileFlags = OFF_BINARY;
 			else if (strcmp(str1, "ASCII")!=0)
 				printf("%s: invalid output file format\n", str1);
 			continue;
@@ -320,7 +320,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 		if (strstr(str, "OUTPUT_FILE_HEADER")!=NULL) {
 			read = fscanf(f_ini, "%s", str1);
 			if (strcmp(str1, "YES")==0)
-				WDcfg->OutFileFlags|= OFF_HEADER;
+                WDcfg->OutFileFlags = OFF_HEADER;
 			else if (strcmp(str1, "NO")!=0)
 				printf("%s: invalid option\n", str);
 			continue;
@@ -527,7 +527,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 		if (strstr(str, "FPIO_LEVEL")!=NULL) {
 			read = fscanf(f_ini, "%s", str1);
 			if (strcmp(str1, "TTL")==0)
-				WDcfg->FPIOtype = 1;
+                WDcfg->FPIOtype = CAEN_DGTZ_IOLevel_TTL;
 			else if (strcmp(str1, "NIM")!=0)
 				printf("%s: invalid option\n", str);
 			continue;
