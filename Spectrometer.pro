@@ -18,10 +18,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     WDconfig.cpp \
     WaveDump.cpp \
-    flash.c \
+    flash.cpp \
     main.cpp \
     mainwindow.cpp \
-    spi.c
+    spi.cpp
 
 HEADERS += \
     CAENComm.h \
@@ -48,12 +48,20 @@ DISTFILES += \
     cfg/WaveDumpConfig_X740.txt \
     cfg/WaveDumpConfig_X742.txt \
     dll/x32/CAENComm.dll \
+    dll/x32/CAENComm.dll \
+    dll/x32/CAENDigitizer.dll \
     dll/x32/CAENDigitizer.dll \
     dll/x32/CAENVMELib.dll \
+    dll/x32/CAENVMELib.dll \
+    dll/x32/PlxApi.dll \
     dll/x32/PlxApi.dll \
     dll/x64/CAENComm.dll \
+    dll/x64/CAENComm.dll \
+    dll/x64/CAENDigitizer.dll \
     dll/x64/CAENDigitizer.dll \
     dll/x64/CAENVMELib.dll \
+    dll/x64/CAENVMELib.dll \
+    dll/x64/PlxApi.dll \
     dll/x64/PlxApi.dll \
     lib/Win32/Debug/CAENComm.lib \
     lib/Win32/Debug/CAENDigitizer.lib \
