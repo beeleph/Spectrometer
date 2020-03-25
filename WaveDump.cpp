@@ -1491,11 +1491,6 @@ int oldMain(int argc, char *argv[])
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
 
-    printf("\n");
-    printf("**************************************************************\n");
-    printf("                        Wave Dump %s\n", WaveDump_Release);
-    printf("**************************************************************\n");
-
 	/* *************************************************************************************** */
 	/* Open and parse default configuration file                                                       */
 	/* *************************************************************************************** */
@@ -1507,7 +1502,7 @@ int oldMain(int argc, char *argv[])
 	else 
 		strcpy(ConfigFileName, DEFAULT_CONFIG_FILE);
 
-	printf("Opening Configuration File %s\n", ConfigFileName);
+    qDebug() << "Opening Configuration File" << ConfigFileName;
 	f_ini = fopen(ConfigFileName, "r");
 	if (f_ini == NULL) {
 		ErrCode = ERR_CONF_FILE_NOT_FOUND;

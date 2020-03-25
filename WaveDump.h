@@ -26,6 +26,8 @@
 //#include <fstream.h>
 #include <CAENDigitizer.h>
 #include <CAENDigitizerType.h>
+#include <QApplication>
+#include <QDebug>
 
 #ifdef WIN32
 
@@ -168,7 +170,7 @@ void Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInf
 void Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
 int Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
 class N6740 {
-    //Q_OBJECT
+    Q_OBJECT
 
 public:
     int oldMain(int argc, char *argv[]);
