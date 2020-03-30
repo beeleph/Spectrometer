@@ -127,7 +127,7 @@ static long get_time()
 *   \param   WDcfg       pointer to the config. struct
 *   \return  0 = Success; -1 = unknown board type
 */
-int GetMoreBoardInfo(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo, WaveDumpConfig_t *WDcfg)
+int N6740::GetMoreBoardInfo(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo, WaveDumpConfig_t *WDcfg)
 {
     int ret;
     switch(BoardInfo.FamilyCode) {
@@ -211,7 +211,7 @@ int GetMoreBoardInfo(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo, WaveDumpConfig
 *   \param   mask   :   Bitmask to use for data masking
 *   \return  0 = Success; negative numbers are error codes
 */
-int WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data, uint32_t mask) {
+int N6740::WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data, uint32_t mask) {
     int32_t ret = CAEN_DGTZ_Success;
     uint32_t d32 = 0xFFFFFFFF;
 
@@ -234,7 +234,7 @@ int WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data, uint32
 *   \param   WDcfg:   WaveDumpConfig data structure
 *   \return  0 = Success; negative numbers are error codes
 */
-int ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
+int N6740::ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
 {
     int i, j, ret = 0;
 
@@ -353,7 +353,7 @@ int ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t B
 *   \param   WDrun:   Pointer to the WaveDumpRun_t data structure
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 */
-void GoToNextEnabledGroup(WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg) {
+void N6740::GoToNextEnabledGroup(WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg) {
     if ((WDcfg->EnableMask) && (WDcfg->Nch>8)) {
         int orgPlotIndex = WDrun->GroupPlotIndex;
         do {
@@ -370,7 +370,7 @@ void GoToNextEnabledGroup(WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg) {
 *
 *   \param   BoardInfo board descriptor
 */
-int32_t BoardSupportsCalibration(CAEN_DGTZ_BoardInfo_t BoardInfo) {
+int32_t N6740::BoardSupportsCalibration(CAEN_DGTZ_BoardInfo_t BoardInfo) {
     return
 		BoardInfo.FamilyCode == CAEN_DGTZ_XX761_FAMILY_CODE ||
         BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE ||
@@ -383,7 +383,7 @@ int32_t BoardSupportsCalibration(CAEN_DGTZ_BoardInfo_t BoardInfo) {
 *
 *   \param   BoardInfo board descriptor
 */
-int32_t BoardSupportsTemperatureRead(CAEN_DGTZ_BoardInfo_t BoardInfo) {
+int32_t N6740::BoardSupportsTemperatureRead(CAEN_DGTZ_BoardInfo_t BoardInfo) {
     return
         BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE ||
         BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE ||
@@ -397,7 +397,7 @@ int32_t BoardSupportsTemperatureRead(CAEN_DGTZ_BoardInfo_t BoardInfo) {
 *   \param   EventInfo Pointer to the EventInfo data structure
 *   \param   Event Pointer to the Event to write
 */
-void calibrate(int handle, WaveDumpRun_t *WDrun, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+void N6740::calibrate(int handle, WaveDumpRun_t *WDrun, CAEN_DGTZ_BoardInfo_t BoardInfo) {
     printf("\n");
     if (BoardSupportsCalibration(BoardInfo)) {
         if (WDrun->AcqRun == 0) {
@@ -427,7 +427,7 @@ void calibrate(int handle, WaveDumpRun_t *WDrun, CAEN_DGTZ_BoardInfo_t BoardInfo
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
 	float cal[MAX_CH];
 	float offset[MAX_CH] = { 0 };
 	int i = 0, acq = 0, k = 0, p=0, g = 0;
@@ -618,7 +618,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
 	int ch = 0, i = 0;
 
 	//preliminary check: if baseline shift is not enabled for any channel quit
@@ -872,7 +872,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
 	float cal[MAX_CH];
 	float offset[MAX_CH] = { 0 };
 	int i = 0, k = 0, p = 0, acq = 0, ch = 0;
@@ -1113,7 +1113,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-int Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+int N6740::Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo) {
 	int ret = CAEN_DGTZ_Success;
 	if (WDcfg->Version_used[ch] == 0) //old DC_OFFSET config, skip calibration
 		return ret;
@@ -1150,7 +1150,7 @@ int Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_Bo
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
+void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
 {
     int c = 0;
 	uint8_t percent;
@@ -1376,7 +1376,7 @@ void CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *W
 *   \param   EventInfo Pointer to the EventInfo data structure
 *   \param   Event Pointer to the Event to write
 */
-int WriteOutputFiles(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
+int N6740::WriteOutputFiles(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
 {
     int ch, j, ns;
     CAEN_DGTZ_UINT16_EVENT_t  *Event16 = NULL;
@@ -1465,7 +1465,7 @@ int WriteOutputFiles(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_DGTZ_Ev
 /* ########################################################################### */
 /* MAIN                                                                        */
 /* ########################################################################### */
-int oldMain(int argc, char *argv[])
+int N6740::oldMain(int argc, char *argv[])
 {
     WaveDumpConfig_t   WDcfg;
     WaveDumpRun_t      WDrun;
@@ -1527,14 +1527,14 @@ int oldMain(int argc, char *argv[])
         ErrCode = ERR_BOARD_INFO_READ;
         goto QuitProgram;
     }
-    printf("Connected to CAEN Digitizer Model %s\n", BoardInfo.ModelName);
-    printf("ROC FPGA Release is %s\n", BoardInfo.ROC_FirmwareRel);
-    printf("AMC FPGA Release is %s\n", BoardInfo.AMC_FirmwareRel);
+    qDebug() << "Connected to CAEN Digitizer Model %s\n" << BoardInfo.ModelName;
+    qDebug() << "ROC FPGA Release is %s\n" << BoardInfo.ROC_FirmwareRel;
+    qDebug() << "AMC FPGA Release is %s\n" << BoardInfo.AMC_FirmwareRel;
 
     // Check firmware rivision (DPP firmwares cannot be used with WaveDump */
     sscanf(BoardInfo.AMC_FirmwareRel, "%d", &MajorNumber);
     if (MajorNumber >= 128) {
-        printf("This digitizer has a DPP firmware\n");
+        qDebug() << "This digitizer has a DPP firmware\n";
         ErrCode = ERR_INVALID_BOARD_TYPE;
         goto QuitProgram;
     }
@@ -1552,7 +1552,7 @@ int oldMain(int argc, char *argv[])
 #else
 			strcpy(ConfigFileName, "WaveDumpConfig_X740.txt");
 #endif		
-			printf("\nWARNING: using configuration file %s specific for Board model X740.\nEdit this file if you want to modify the default settings.\n ", ConfigFileName);
+            qDebug() << "\nWARNING: using configuration file %s specific for Board model X740.\nEdit this file if you want to modify the default settings.\n " << ConfigFileName;
 			use_specific_file = 1;
 		}
 
@@ -1669,7 +1669,7 @@ Restart:
 		CAEN_DGTZ_SWStartAcquisition(handle);
 	}
     else
-        printf("[s] start/stop the acquisition, [q] quit, [SPACE] help\n");
+        qDebug() << "[s] start/stop the acquisition, [q] quit, [SPACE] help\n";
     WDrun.Restart = 0;
     PrevRateTime = get_time();
     /* *************************************************************************************** */
@@ -1749,7 +1749,7 @@ Restart:
 			uint32_t lstatus;
 			ret = CAEN_DGTZ_ReadRegister(handle, CAEN_DGTZ_ACQ_STATUS_ADD, &lstatus);
 			if (ret) {
-				printf("Warning: Failure reading reg:%x (%d)\n", CAEN_DGTZ_ACQ_STATUS_ADD, ret);
+                qDebug() << "Warning: Failure reading reg:%x (%d)\n" << CAEN_DGTZ_ACQ_STATUS_ADD << " " << ret;
 			}
 			else {
 				if (lstatus & (0x1 << 19)) {
@@ -1768,9 +1768,12 @@ InterruptTimeout:
         nCycles++;
         if (ElapsedTime > 1000) {
             if (Nb == 0)
-                if (ret == CAEN_DGTZ_Timeout) printf ("Timeout...\n"); else printf("No data...\n");
+                if (ret == CAEN_DGTZ_Timeout)
+                    qDebug() << "Timeout...\n";
+                else
+                    qDebug() << "No data...\n";
             else
-                printf("Reading at %.2f MB/s (Trg Rate: %.2f Hz)\n", (float)Nb/((float)ElapsedTime*1048.576f), (float)Ne*1000.0f/(float)ElapsedTime);
+                qDebug() << "Reading at " << (float)Nb/((float)ElapsedTime*1048.576f) << " MB/s (Trg Rate):" <<  (float)Ne*1000.0f/(float)ElapsedTime << " Hz)\n";
             nCycles= 0;
             Nb = 0;
             Ne = 0;
@@ -1833,7 +1836,7 @@ InterruptTimeout:
                         goto QuitProgram;
                     }
                     if (WDrun.SingleWrite) {
-                        printf("Single Event saved to output files\n");
+                        qDebug() << "Single Event saved to output files\n";
                         WDrun.SingleWrite = 0;
                     }
                 }
@@ -1843,10 +1846,10 @@ InterruptTimeout:
 
 QuitProgram:
     if (ErrCode) {
-        printf("\a%s\n", ErrMsg[ErrCode]);
+        qDebug() << ErrMsg[ErrCode];
 #ifdef WIN32
-        printf("Press a key to quit\n");
-        getch();
+        qDebug() << "Press a key to quit\n";
+        //getch();
 #endif
     }
 
