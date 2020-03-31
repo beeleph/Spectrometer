@@ -241,7 +241,7 @@ int N6740::ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardI
     /* reset the digitizer */
     ret |= CAEN_DGTZ_Reset(handle);
     if (ret != 0) {
-        printf("Error: Unable to reset digitizer.\nPlease reset digitizer manually then restart the program\n");
+        qDebug() << "Error: Unable to reset digitizer.\nPlease reset digitizer manually then restart the program\n";
         return -1;
     }
 
@@ -268,7 +268,7 @@ int N6740::ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardI
         if( ret |= CAEN_DGTZ_SetInterruptConfig( handle, CAEN_DGTZ_ENABLE,
             VME_INTERRUPT_LEVEL, VME_INTERRUPT_STATUS_ID,
             (uint16_t)WDcfg.InterruptNumEvents, INTERRUPT_MODE)!= CAEN_DGTZ_Success) {
-                printf( "\nError configuring interrupts. Interrupts disabled\n\n");
+                qDebug() << "\nError configuring interrupts. Interrupts disabled\n\n";
                 WDcfg.InterruptNumEvents = 0;
         }
     }
@@ -342,7 +342,7 @@ int N6740::ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardI
         ret |= WriteRegisterBitmask(handle, WDcfg.GWaddr[i], WDcfg.GWdata[i], WDcfg.GWmask[i]);
 
     if (ret)
-        printf("Warning: errors found during the programming of the digitizer.\nSome settings may not be executed\n");
+        qDebug() << "Warning: errors found during the programming of the digitizer.\nSome settings may not be executed\n";
 
     return 0;
 }
@@ -360,7 +360,7 @@ void N6740::GoToNextEnabledGroup(WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg) 
             WDrun->GroupPlotIndex = (++WDrun->GroupPlotIndex)%(WDcfg->Nch/8);
         } while( !((1 << WDrun->GroupPlotIndex)& WDcfg->EnableMask));
         if( WDrun->GroupPlotIndex != orgPlotIndex) {
-            printf("Plot group set to %d\n", WDrun->GroupPlotIndex);
+            qDebug() << "Plot group set to \n" << WDrun->GroupPlotIndex;
         }
     }
 }
@@ -398,24 +398,24 @@ int32_t N6740::BoardSupportsTemperatureRead(CAEN_DGTZ_BoardInfo_t BoardInfo) {
 *   \param   Event Pointer to the Event to write
 */
 void N6740::calibrate(int handle, WaveDumpRun_t *WDrun, CAEN_DGTZ_BoardInfo_t BoardInfo) {
-    printf("\n");
+    qDebug() << "\n";
     if (BoardSupportsCalibration(BoardInfo)) {
         if (WDrun->AcqRun == 0) {
             int32_t ret = CAEN_DGTZ_Calibrate(handle);
             if (ret == CAEN_DGTZ_Success) {
-                printf("ADC Calibration successfully executed.\n");
+                qDebug() << "ADC Calibration successfully executed.\n";
             }
             else {
-                printf("ADC Calibration failed. CAENDigitizer ERR %d\n", ret);
+                qDebug() << "ADC Calibration failed. CAENDigitizer ERR \n" << ret;
             }
-            printf("\n");
+            qDebug() << "\n";
         }
         else {
-            printf("Can't run ADC calibration while acquisition is running.\n");
+            qDebug() << "Can't run ADC calibration while acquisition is running.\n";
         }
     }
     else {
-        printf("ADC Calibration not needed for this board family.\n");
+        qDebug() << "ADC Calibration not needed for this board family.\n";
     }
 }
 
@@ -450,27 +450,27 @@ void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_
 
 	ret = CAEN_DGTZ_GetAcquisitionMode(handle, &mem_mode);//chosen value stored
 	if (ret)
-		printf("Error trying to read acq mode!!\n");
+        qDebug() << "Error trying to read acq mode!!\n";
 	ret = CAEN_DGTZ_SetAcquisitionMode(handle, CAEN_DGTZ_SW_CONTROLLED);
 	if (ret)
-		printf("Error trying to set acq mode!!\n");
+        qDebug() << "Error trying to set acq mode!!\n";
 	ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, CAEN_DGTZ_TRGMODE_DISABLED);
 	if (ret)
-		printf("Error trying to set ext trigger!!\n");
+        qDebug() << "Error trying to set ext trigger!!\n";
 	ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, 1);
 	if (ret)
-		printf("Warning: error setting max BLT number\n");
+        qDebug() << "Warning: error setting max BLT number\n";
 	ret = CAEN_DGTZ_SetDecimationFactor(handle, 1);
 	if (ret)
-		printf("Error trying to set decimation factor!!\n");
+        qDebug() << "Error trying to set decimation factor!!\n";
 	for (g = 0; g< (int32_t)BoardInfo.Channels; g++) //BoardInfo.Channels is number of groups for x740 boards
 		groupmask |= (1 << g);
 	ret = CAEN_DGTZ_SetGroupSelfTrigger(handle, CAEN_DGTZ_TRGMODE_DISABLED, groupmask);
 	if (ret)
-		printf("Error disabling self trigger\n");
+        qDebug() << "Error disabling self trigger\n";
 	ret = CAEN_DGTZ_SetGroupEnableMask(handle, groupmask);
 	if (ret)
-		printf("Error enabling channel groups.\n");
+        qDebug() << "Error enabling channel groups.\n";
 	///malloc
 	ret = CAEN_DGTZ_MallocReadoutBuffer(handle, &buffer, &AllocatedSize);
 	if (ret) {
@@ -484,13 +484,13 @@ void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_
 		goto QuitProgram;
 	}
 
-	printf("Starting DAC calibration...\n");
+    qDebug() << "Starting DAC calibration...\n";
 
 	for (p = 0; p < NPOINTS; p++){
 		for (i = 0; i < (int32_t)BoardInfo.Channels; i++) { //BoardInfo.Channels is number of groups for x740 boards
                 ret = CAEN_DGTZ_SetGroupDCOffset(handle, (uint32_t)i, (uint32_t)((float)(abs((int)dc[p] - 100))*(655.35)));
 				if (ret)
-					printf("Error setting group %d test offset\n", i);
+                    qDebug() << "Error setting group test offset\n" << i;
 		}
 	#ifdef _WIN32
 				Sleep(200);
@@ -502,7 +502,7 @@ void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_
 
 	ret = CAEN_DGTZ_SWStartAcquisition(handle);
 	if (ret) {
-		printf("Error starting X740 acquisition\n");
+        qDebug() << "Error starting X740 acquisition\n";
 		goto QuitProgram;
 	}
 
@@ -571,8 +571,8 @@ void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_
 	for (g = 0; g < (int32_t)BoardInfo.Channels; g++) {
 			cal[g] = ((float)(avg_value[1][g] - avg_value[0][g]) / (float)(dc[1] - dc[0]));
 			offset[g] = (float)(dc[1] * avg_value[0][g] - dc[0] * avg_value[1][g]) / (float)(dc[1] - dc[0]);
-			printf("Group %d DAC calibration ready.\n",g);
-			printf("Cal %f   offset %f\n", cal[g], offset[g]);
+            qDebug() << "Group DAC calibration ready.\n" << g;
+            qDebug() << "Cal  offset \n" << cal[g] << offset[g];
 
 			WDcfg->DAC_Calib.cal[g] = cal[g];
 			WDcfg->DAC_Calib.offset[g] = offset[g];
@@ -596,16 +596,16 @@ void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_
             ret = CAEN_DGTZ_SetGroupSelfTrigger(handle, WDcfg->ChannelTriggerMode[i], (1 << i));
 	}
 	if (ret)
-		printf("Error setting recorded parameters\n");
+        qDebug() << "Error setting recorded parameters\n";
 
 	Save_DAC_Calibration_To_Flash(handle, *WDcfg, BoardInfo);
 
 QuitProgram:
 		if (ErrCode) {
-			printf("\a%s\n", ErrMsg[ErrCode]);
+            qDebug() <<  ErrMsg[ErrCode];
 #ifdef WIN32
-			printf("Press a key to quit\n");
-			getch();
+            qDebug() << "Press a key to quit\n";
+            //getch();
 #endif
 		}
 }
@@ -668,7 +668,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 	//some custom settings
 	ret = CAEN_DGTZ_SetPostTriggerSize(handle, custom_posttrg);
 	if (ret) {
-		printf("Threshold calc failed. Error trying to set post trigger!!\n");
+        qDebug() << "Threshold calc failed. Error trying to set post trigger!!\n";
 		return;
 	}
 	//try to set a small threshold to get a self triggered event
@@ -679,7 +679,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 			else
 				ret = CAEN_DGTZ_GetChannelDCOffset(handle, ch, &dco);
 			if (ret) {
-				printf("Threshold calc failed. Error trying to get DCoffset values!!\n");
+                qDebug() << "Threshold calc failed. Error trying to get DCoffset values!!\n";
 				return;
 			}
 			dco_percent = (float)dco / 65535.;
@@ -692,7 +692,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 			else
 				ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, custom_thr);
 			if (ret) {
-				printf("Threshold calc failed. Error trying to set custom threshold value!!\n");
+                qDebug() << "Threshold calc failed. Error trying to set custom threshold value!!\n";
 				return;
 			}
 		}
@@ -764,7 +764,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 				else
 					ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, WDcfg->Threshold[ch]);
 				if (ret)
-					printf("Warning: error setting ch %d corrected threshold\n", ch);
+                    qDebug() << "Warning: error setting ch " << ch << " corrected threshold\n";
 			}
 		}
 	}
@@ -835,7 +835,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 			else
 				ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, WDcfg->Threshold[ch]);
 			if (ret)
-					printf("Warning: error setting ch %d corrected threshold\n", ch);
+                    qDebug() << "Warning: error setting ch " << ch << " corrected threshold\n";
 		}
 	}//end sw trigger event analysis
 
@@ -844,7 +844,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 	//reset posttrigger
 	ret = CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg->PostTrigger);
 	if (ret)
-		printf("Error resetting post trigger.\n");
+        qDebug() << "Error resetting post trigger.\n";
 
 	CAEN_DGTZ_ClearData(handle);
 
@@ -857,10 +857,10 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 
 QuitProgram:
 	if (ErrCode) {
-		printf("\a%s\n", ErrMsg[ErrCode]);
+        qDebug() << ErrMsg[ErrCode];
 #ifdef WIN32
-		printf("Press a key to quit\n");
-		getch();
+        qDebug() << "Press a key to quit\n";
+        //getch();
 #endif
 	}
 }
@@ -896,28 +896,28 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 
 	ret = CAEN_DGTZ_GetAcquisitionMode(handle, &mem_mode);//chosen value stored
 	if (ret)
-		printf("Error trying to read acq mode!!\n");
+        qDebug() << "Error trying to read acq mode!!\n";
 	ret = CAEN_DGTZ_SetAcquisitionMode(handle, CAEN_DGTZ_SW_CONTROLLED);
 	if (ret)
-		printf("Error trying to set acq mode!!\n");
+        qDebug() << "Error trying to set acq mode!!\n";
 	ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, CAEN_DGTZ_TRGMODE_DISABLED);
 	if (ret)
-		printf("Error trying to set ext trigger!!\n");
+        qDebug() << "Error trying to set ext trigger!!\n";
 	for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++)
 		chmask |= (1 << ch);
 	ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, CAEN_DGTZ_TRGMODE_DISABLED, chmask);
 	if (ret)
-		printf("Warning: error disabling channels self trigger\n");
+        qDebug() << "Warning: error disabling channels self trigger\n";
 	ret = CAEN_DGTZ_SetChannelEnableMask(handle, chmask);
 	if (ret)
-		printf("Warning: error enabling channels.\n");
+        qDebug() << "Warning: error enabling channels.\n";
 	ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, 1);
 	if (ret)
-		printf("Warning: error setting max BLT number\n");
+        qDebug() << "Warning: error setting max BLT number\n";
 	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX724_FAMILY_CODE) {
 		ret = CAEN_DGTZ_SetDecimationFactor(handle, 1);
 		if (ret)
-			printf("Error trying to set decimation factor!!\n");
+            qDebug() << "Error trying to set decimation factor!!\n";
 	}
 
 	///malloc
@@ -936,14 +936,14 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 		goto QuitProgram;
 	}
 
-	printf("Starting DAC calibration...\n");
+    qDebug() << "Starting DAC calibration...\n";
 	
 	for (p = 0; p < NPOINTS; p++){
 		//set new dco  test value to all channels
 		for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
                 ret = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)ch, (uint32_t)((float)(abs((int)dc[p] - 100))*(655.35)));
 				if (ret)
-					printf("Error setting ch %d test offset\n", ch);
+                    qDebug() << "Error setting ch " << ch << " test offset\n";
 		}
 #ifdef _WIN32
 					Sleep(200);
@@ -954,7 +954,7 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 
 		ret = CAEN_DGTZ_SWStartAcquisition(handle);
 		if (ret){
-			printf("Error starting acquisition\n");
+            qDebug() << "Error starting acquisition\n";
 			goto QuitProgram;
 		}
 		
@@ -1033,7 +1033,7 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 	for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
 			cal[ch] = ((float)(avg_value[1][ch] - avg_value[0][ch]) / (float)(dc[1] - dc[0]));
 			offset[ch] = (float)(dc[1] * avg_value[0][ch] - dc[0] * avg_value[1][ch]) / (float)(dc[1] - dc[0]);
-			printf("Channel %d DAC calibration ready.\n", ch);
+            qDebug() << "Channel " << ch << " DAC calibration ready.\n";
 			//printf("Channel %d --> Cal %f   offset %f\n", ch, cal[ch], offset[ch]);
 
 			WDcfg->DAC_Calib.cal[ch] = cal[ch];
@@ -1058,7 +1058,7 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX724_FAMILY_CODE)
         ret = CAEN_DGTZ_SetDecimationFactor(handle, WDcfg->DecimationFactor);
 	if (ret)
-		printf("Error resetting some parameters after DAC calibration\n");
+        qDebug() << "Error resetting some parameters after DAC calibration\n";
 
 	//reset self trigger mode settings
 	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) {
@@ -1091,16 +1091,15 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 		}
 	}
 	if (ret)
-		printf("Error resetting self trigger mode after DAC calibration\n");
+        qDebug() << "Error resetting self trigger mode after DAC calibration\n";
 
 	Save_DAC_Calibration_To_Flash(handle, *WDcfg, BoardInfo);
 
 QuitProgram:
 	if (ErrCode) {
-		printf("\a%s\n", ErrMsg[ErrCode]);
+        qDebug() << ErrMsg[ErrCode];
 #ifdef WIN32
-		printf("Press a key to quit\n");
-		getch();
+        qDebug() << "Press a key to quit\n";
 #endif
 	}
 
@@ -1131,12 +1130,12 @@ int N6740::Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_
 	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) {
 		ret = CAEN_DGTZ_SetGroupDCOffset(handle, (uint32_t)ch, WDcfg->DCoffset[ch]);
 		if (ret)
-			printf("Error setting group %d offset\n", ch);
+            qDebug() << "Error setting group " << ch << " offset\n";
 	}
 	else {
 		ret = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)ch, WDcfg->DCoffset[ch]);
 		if (ret)
-			printf("Error setting channel %d offset\n", ch);
+            qDebug() << "Error setting channel " << ch << " offset\n";
 	}
 
 	return ret;
@@ -1162,30 +1161,32 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
         int ch = c-'0';
         if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE){
             WDrun->ChannelPlotMask ^= (1 << ch);
-			if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) && (ch == 8)) printf("Channel %d belongs to a different group\n", ch + WDrun->GroupPlotIndex * 8);
+            if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) && (ch == 8))
+                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex * 8 << " belongs to a different group\n";
 			else
 			if (WDrun->ChannelPlotMask & (1 << ch))
-                printf("Channel %d enabled for plotting\n", ch + WDrun->GroupPlotIndex*8);
+                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex*8 << " enabled for plotting\n";
             else
-                printf("Channel %d disabled for plotting\n", ch + WDrun->GroupPlotIndex*8);
+                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex*8 << " disabled for plotting\n";
         } 
 		else if((BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) && (WDcfg->Nch>8)) {
 		ch = ch + 8 * WDrun->GroupPlotSwitch;
 		if(ch!= 8 && WDcfg->EnableMask & (1 << ch)){		
 		WDrun->ChannelPlotMask ^= (1 << ch);
 		if (WDrun->ChannelPlotMask & (1 << ch))
-		printf("Channel %d enabled for plotting\n", ch);
+            qDebug() << "Channel " << ch << " enabled for plotting\n";
 		else
-		printf("Channel %d disabled for plotting\n", ch);
+            qDebug() << "Channel " << ch << " disabled for plotting\n";
 		}
-		else printf("Channel %d not enabled for acquisition\n",ch);
+        else
+            qDebug() << "Channel "<< ch << " not enabled for acquisition\n";
 		}			
 		else {
             WDrun->ChannelPlotMask ^= (1 << ch);
             if (WDrun->ChannelPlotMask & (1 << ch))
-                printf("Channel %d enabled for plotting\n", ch);
+                qDebug() << "Channel %d enabled for plotting\n" << ch;
             else
-                printf("Channel %d disabled for plotting\n", ch);
+                qDebug() << "Channel %d disabled for plotting\n" << ch;
         }
     } else {
         switch(c) {
@@ -1195,11 +1196,11 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
 			{
 				if (WDrun->GroupPlotSwitch == 0) {
 					WDrun->GroupPlotSwitch = 1;
-					printf("Channel group set to %d: use numbers 0-7 for channels 8-15\n", WDrun->GroupPlotSwitch);
+                    qDebug() << "Channel group set to %d: use numbers 0-7 for channels 8-15\n" << WDrun->GroupPlotSwitch;
 				}
 				else if(WDrun->GroupPlotSwitch == 1)	{
 					WDrun->GroupPlotSwitch = 0;
-					printf("Channel group set to %d: use numbers 0-7 for channels 0-7\n", WDrun->GroupPlotSwitch);
+                    qDebug() << "Channel group set to %d: use numbers 0-7 for channels 0-7\n" << WDrun->GroupPlotSwitch;
 				}
 			}
 			else
@@ -1216,25 +1217,25 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
         case 't' :
             if (!WDrun->ContinuousTrigger) {
                 CAEN_DGTZ_SendSWtrigger(handle);
-                printf("Single Software Trigger issued\n");
+                qDebug() << "Single Software Trigger issued\n";
             }
             break;
         case 'T' :
             WDrun->ContinuousTrigger ^= 1;
             if (WDrun->ContinuousTrigger)
-                printf("Continuous trigger is enabled\n");
+                qDebug() << "Continuous trigger is enabled\n";
             else
-                printf("Continuous trigger is disabled\n");
+                qDebug() << "Continuous trigger is disabled\n";
             break;
         case 'P' :
             if (WDrun->ChannelPlotMask == 0)
-                printf("No channel enabled for plotting\n");
+                qDebug() << "No channel enabled for plotting\n";
             else
                 WDrun->ContinuousPlot ^= 1;
             break;
         case 'p' :
             if (WDrun->ChannelPlotMask == 0)
-                printf("No channel enabled for plotting\n");
+                qDebug() << "No channel enabled for plotting\n";
             else
                 WDrun->SinglePlot = 1;
             break;
@@ -1254,9 +1255,9 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
         case 'W' :
             WDrun->ContinuousWrite ^= 1;
             if (WDrun->ContinuousWrite)
-                printf("Continuous writing is enabled\n");
+                qDebug() << "Continuous writing is enabled\n";
             else
-                printf("Continuous writing is disabled\n");
+                qDebug() << "Continuous writing is disabled\n";
             break;
         case 's' :
             if (WDrun->AcqRun == 0) {
@@ -1266,14 +1267,14 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
 				if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE)
 					WDrun->GroupPlotSwitch = 0;
 				
-                printf("Acquisition started\n");
+                qDebug() << "Acquisition started\n";
 
                 CAEN_DGTZ_SWStartAcquisition(handle);
 
                 WDrun->AcqRun = 1;
 
             } else {
-                printf("Acquisition stopped\n");
+                qDebug() << "Acquisition stopped\n";
                 CAEN_DGTZ_SWStopAcquisition(handle);
                 WDrun->AcqRun = 0;
 				//WDrun->Restart = 1;
@@ -1286,20 +1287,20 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
                     for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
                         uint32_t temp;
                         int32_t ret = CAEN_DGTZ_ReadTemperature(handle, ch, &temp);
-                        printf("CH%02d: ", ch);
+                        qDebug() << "CH%02d: " << ch;
                         if (ret == CAEN_DGTZ_Success)
-                            printf("%u C\n", temp);
+                            qDebug() << "%u C\n" << temp;
                         else
-                            printf("CAENDigitizer ERR %d\n", ret);
+                            qDebug() << "CAENDigitizer ERR %d\n" << ret;
                     }
-                    printf("\n");
+                    qDebug() << "\n";
                 }
                 else {
-                    printf("Can't run temperature monitor while acquisition is running.\n");
+                    qDebug() << "Can't run temperature monitor while acquisition is running.\n";
                 }
             }
             else {
-                printf("Board Family doesn't support ADC Temperature Monitor.\n");
+                qDebug() << "Board Family doesn't support ADC Temperature Monitor.\n";
             }
             break;
         case 'c' :
@@ -1307,7 +1308,7 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
             break;
 		case 'D':
 			if (WDrun->AcqRun == 0) {
-				printf("Disconnect input signal from all channels and press any key to start.\n");
+                qDebug() << "Disconnect input signal from all channels and press any key to start.\n";
 				getch();
 				if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)//XX740 specific
 					Calibrate_XX740_DC_Offset(handle, WDcfg, BoardInfo);
@@ -1324,7 +1325,7 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
 						else {
 							err = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)i, WDcfg->DCoffset[i]);
 							if (err)
-								printf("Error setting channel %d offset\n", i);
+                                qDebug() << "Error setting channel %d offset\n" << i;
 						}
 					}
 				}
@@ -1333,36 +1334,36 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
 #else
 				usleep(200000);
 #endif
-				printf("DAC calibration ready!!\n");
+                qDebug() << "DAC calibration ready!!\n";
 			}
 			else {
-				printf("Acquisition is running. Stop acquisition to start DAC calibration.\n");
+                qDebug() << "Acquisition is running. Stop acquisition to start DAC calibration.\n";
 			}
 			break;
         case ' ' :
-            printf("\n                            Bindkey help                                \n");
-            printf("--------------------------------------------------------------------------\n");;
-            printf("  [q]   Quit\n");
-            printf("  [R]   Reload configuration file and restart\n");
-            printf("  [s]   Start/Stop acquisition\n");
-            printf("  [t]   Send a software trigger (single shot)\n");
-            printf("  [T]   Enable/Disable continuous software trigger\n");
-            printf("  [w]   Write one event to output file\n");
-            printf("  [W]   Enable/Disable continuous writing to output file\n");
-            printf("  [p]   Plot one event\n");
-            printf("  [P]   Enable/Disable continuous plot\n");
-            printf("  [f]   Toggle between FFT and Waveform plot\n");
-            printf("  [h]   Toggle between Histogram and Waveform plot\n");
-            printf("  [g]   Change the index of the group to plot (XX740 family)\n");
-            printf("  [m]   Single ADC temperature monitor (XX751/30/25 only)\n");
-            printf("  [c]   ADC Calibration (XX751/30/25 only)\n");
-			printf("  [D]   DAC offset calibration\n");
-            printf(" [0-7]  Enable/Disable one channel on the plot\n");
-            printf("        For x740 family this is the plotted group's relative channel index\n");
-            printf("[SPACE] This help\n");
-            printf("--------------------------------------------------------------------------\n");
-            printf("Press a key to continue\n");
-            getch();
+            qDebug() << "\n                            Bindkey help                                \n";
+            qDebug() << "--------------------------------------------------------------------------\n";
+            qDebug() << "  [q]   Quit\n";
+            qDebug() << "  [R]   Reload configuration file and restart\n";
+            qDebug() << "  [s]   Start/Stop acquisition\n";
+            qDebug() << "  [t]   Send a software trigger (single shot)\n";
+            qDebug() << "  [T]   Enable/Disable continuous software trigger\n";
+            qDebug() << "  [w]   Write one event to output file\n";
+            qDebug() << "  [W]   Enable/Disable continuous writing to output file\n";
+            qDebug() << "  [p]   Plot one event\n";
+            qDebug() << "  [P]   Enable/Disable continuous plot\n";
+            qDebug() << "  [f]   Toggle between FFT and Waveform plot\n";
+            qDebug() << "  [h]   Toggle between Histogram and Waveform plot\n";
+            qDebug() << "  [g]   Change the index of the group to plot (XX740 family)\n";
+            qDebug() << "  [m]   Single ADC temperature monitor (XX751/30/25 only)\n";
+            qDebug() << "  [c]   ADC Calibration (XX751/30/25 only)\n";
+            qDebug() << "  [D]   DAC offset calibration\n";
+            qDebug() << " [0-7]  Enable/Disable one channel on the plot\n";
+            qDebug() << "        For x740 family this is the plotted group's relative channel index\n";
+            qDebug() << "[SPACE] This help\n";
+            qDebug() << "--------------------------------------------------------------------------\n";
+            qDebug() << "Press a key to continue\n";
+            //getch();
             break;
         default :   break;
         }

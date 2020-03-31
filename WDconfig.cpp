@@ -125,14 +125,14 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             if (strstr(str, "TR")) {
 				sscanf(str+1, "TR%d", &val);
 				 if (val < 0 || val >= MAX_SET) {
-                    printf("%s: Invalid channel number\n", str);
+                    //printf("%s: Invalid channel number\n", str);
                 } else {
                     tr = val;
                 }
             } else {
                 sscanf(str+1, "%d", &val);
                 if (val < 0 || val >= MAX_SET) {
-                    printf("%s: Invalid channel number\n", str);
+                    //printf("%s: Invalid channel number\n", str);
                 } else {
                     ch = val;
                 }
@@ -148,7 +148,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			else if (strcmp(str1, "PCI")==0)
 				WDcfg->LinkType = CAEN_DGTZ_OpticalLink;
             else {
-                printf("%s %s: Invalid connection type\n", str, str1);
+                //printf("%s %s: Invalid connection type\n", str, str1);
 				return -1; 
             }
 			read = fscanf(f_ini, "%d", &WDcfg->LinkNum);
@@ -202,7 +202,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
                 pread = fgets(Buf, 1000, f_ini); // Get the remaining line
                 WDcfg->UseManualTables = -1;
                 if(sscanf(ptr, "%s", str1) == 0) {
-                    printf("Invalid syntax for parameter %s\n", str);
+                    //printf("Invalid syntax for parameter %s\n", str);
                     continue;
                 }
                 if(strcmp(str1, "AUTO") != 0) { // The user wants to use custom correction tables
@@ -213,7 +213,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
                         while( ((WDcfg->UseManualTables) & (0x1 << gr)) == 0 && gr < MAX_X742_GROUP_SIZE)
                             gr++;
                         if(gr >= MAX_X742_GROUP_SIZE) {
-                            printf("Error parsing values for parameter %s\n", str);
+                            //printf("Error parsing values for parameter %s\n", str);
                             continue;
                         }
                         ptr = strstr(ptr, str1);
@@ -242,7 +242,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			if (strcmp(str1, "YES")==0)
 				WDcfg->TestPattern = 1;
 			else if (strcmp(str1, "NO")!=0)
-				printf("%s: invalid option\n", str);
+                //printf("%s: invalid option\n", str);
 			continue;
 		}
 
@@ -272,7 +272,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			else if (strcmp(str1, "ACQUISITION_AND_TRGOUT")==0)
                 WDcfg->ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT;
             else
-                printf("%s: Invalid Parameter\n", str);
+                //printf("%s: Invalid Parameter\n", str);
             continue;
 		}
 
@@ -300,7 +300,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			if (strcmp(str1, "YES")==0)
                 WDcfg->DesMode = CAEN_DGTZ_ENABLE;
 			else if (strcmp(str1, "NO")!=0)
-				printf("%s: invalid option\n", str);
+                //printf("%s: invalid option\n", str);
             if(PrevDesMode != WDcfg->DesMode)
                 ret |= (0x1 << CFGRELOAD_DESMODE_BIT);
 			continue;
@@ -312,7 +312,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			if (strcmp(str1, "BINARY")==0)
                 WDcfg->OutFileFlags = OFF_BINARY;
 			else if (strcmp(str1, "ASCII")!=0)
-				printf("%s: invalid output file format\n", str1);
+                //printf("%s: invalid output file format\n", str1);
 			continue;
 		}
 
@@ -322,7 +322,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			if (strcmp(str1, "YES")==0)
                 WDcfg->OutFileFlags = OFF_HEADER;
 			else if (strcmp(str1, "NO")!=0)
-				printf("%s: invalid option\n", str);
+                //printf("%s: invalid option\n", str);
 			continue;
 		}
 
@@ -339,7 +339,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			else if (strcmp(str1, "ACQUISITION_ONLY")==0)
                 WDcfg->FastTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
             else
-                printf("%s: Invalid Parameter\n", str);
+                //printf("%s: Invalid Parameter\n", str);
             continue;
 		}
 		
@@ -348,7 +348,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			if (strcmp(str1, "YES")==0)
 				WDcfg->FastTriggerEnabled= 1;
 			else if (strcmp(str1, "NO")!=0)
-				printf("%s: invalid option\n", str);
+                //printf("%s: invalid option\n", str);
 			continue;
 		}
 	 ///Input polarity	
@@ -360,7 +360,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			else if (strcmp(str1, "NEGATIVE") == 0) 
 				pp = CAEN_DGTZ_PulsePolarityNegative;
 			else
-				printf("%s: Invalid Parameter\n", str);
+                //printf("%s: Invalid Parameter\n", str);
 
 				for (i = 0; i<MAX_SET; i++)///polarity setting (old trigger edge)is the same for all channels
 					WDcfg->PulsePolarity[i] = pp;				
@@ -432,14 +432,14 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 				if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
 				{
 					WDcfg->DCoffset[ch] = (uint32_t)((float)(fabs(dc - 100))*(655.35));
-					//printf("ch %d positive, offset %d\n",ch, WDcfg->DCoffset[ch]);
+                    ////printf("ch %d positive, offset %d\n",ch, WDcfg->DCoffset[ch]);
 				}
 					
 				
 				else if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative)
 				{
 					WDcfg->DCoffset[ch] = (uint32_t)((float)(dc)*(655.35));
-					//printf("ch %d negative, offset %d\n",ch, WDcfg->DCoffset[ch]);
+                    ////printf("ch %d negative, offset %d\n",ch, WDcfg->DCoffset[ch]);
 				}
 				
 				
@@ -511,7 +511,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			else if (strcmp(str1, "TRGOUT_ONLY") == 0)
 				tm = CAEN_DGTZ_TRGMODE_EXTOUT_ONLY;
             else {
-                printf("%s: Invalid Parameter\n", str);
+                //printf("%s: Invalid Parameter\n", str);
                 continue;
             }
             if (ch == -1)
@@ -529,7 +529,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 			if (strcmp(str1, "TTL")==0)
                 WDcfg->FPIOtype = CAEN_DGTZ_IOLevel_TTL;
 			else if (strcmp(str1, "NIM")!=0)
-				printf("%s: invalid option\n", str);
+                //printf("%s: invalid option\n", str);
 			continue;
 		}
 
@@ -551,7 +551,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
                     WDcfg->EnableMask &= ~(1 << ch);
 			    continue;
             } else {
-                printf("%s: invalid option\n", str);
+                //printf("%s: invalid option\n", str);
             }
 			continue;
 		}
@@ -566,7 +566,7 @@ int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             continue;
         }
 
-        printf("%s: invalid setting\n", str);
+        //printf("%s: invalid setting\n", str);
 	}
 	return ret;
 }
@@ -580,7 +580,7 @@ void Load_DAC_Calibration_From_Flash(int handle, WaveDumpConfig_t *WDcfg, CAEN_D
 
 	err = SPIFlash_init(handle);// init flash
 	if (err != FLASH_API_SUCCESS) {
-		printf("Error in flash init\n");
+        //printf("Error in flash init\n");
 		return;
 	}
 
@@ -589,11 +589,11 @@ void Load_DAC_Calibration_From_Flash(int handle, WaveDumpConfig_t *WDcfg, CAEN_D
 	
 	err = SPIFlash_read_virtual_page(handle, OFFSET_CALIBRATION_VIRTUAL_PAGE, buffer);
 	if (err != FLASH_API_SUCCESS) {
-		printf("Error reading flash page size\n");
+        //printf("Error reading flash page size\n");
 		return;
 	}
 	if (buffer[0] != 0xD) {
-		printf("\nNo DAC Calibration data found in board flash. Use option 'D' to calibrate DAC.\n\n");
+        //printf("\nNo DAC Calibration data found in board flash. Use option 'D' to calibrate DAC.\n\n");
 		free(buffer);
 		return;
 	}
@@ -606,7 +606,7 @@ void Load_DAC_Calibration_From_Flash(int handle, WaveDumpConfig_t *WDcfg, CAEN_D
 	}
 
 	free(buffer);
-	printf("\nDAC calibration correctly loaded from board flash.\n");
+    //printf("\nDAC calibration correctly loaded from board flash.\n");
 }
 
 
@@ -623,7 +623,7 @@ void Save_DAC_Calibration_To_Flash(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ
 
 	err = SPIFlash_init(handle);// init flash
 	if (err != FLASH_API_SUCCESS) {
-		printf("Error in flash init.\n");
+        //printf("Error in flash init.\n");
 		return;
 	}
 
@@ -635,11 +635,11 @@ void Save_DAC_Calibration_To_Flash(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ
 	
 	err = SPIFlash_write_virtual_page(handle, OFFSET_CALIBRATION_VIRTUAL_PAGE,buffer);
 	if (err != FLASH_API_SUCCESS) {
-		printf("Error writing flash page\n");
+        //printf("Error writing flash page\n");
 		return;
 	}
 
 	free(buffer);
 
-	printf("DAC calibration correctly saved on flash.\n");
+    //printf("DAC calibration correctly saved on flash.\n");
 }
