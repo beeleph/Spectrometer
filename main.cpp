@@ -9,7 +9,9 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
     qDebug() << "qDebug (with lower case q) testing. everything is ok, i suppose";
-    //oldMain();
+    N6740 test;
+    test.oldMain(0,0);
+    //oldMain(0,0);
 
     return a.exec();
 }
@@ -24,4 +26,8 @@ int main(int argc, char *argv[])
  *
  *  Сначала довести проект до этапа где можно подключиться к оцифровщику и выполнить все функции которые были доступны в родном WD,
  * и только потом чистить проект от лишнего мусора, попутно проверяя работоспособность.
+ *
+ *  Запустить для проверки работы getch с GUI. Возможно ввод с клавиатуры будет возможен.
+ *
+ *  Полностью заменить CheckKeyboardCommand и соответсвующий вызов в Oldmain.
 */

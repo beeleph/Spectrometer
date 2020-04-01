@@ -167,10 +167,11 @@ typedef struct WaveDumpRun_t {
 int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg);
 
 
-class N6740 : public QApplication {
+class N6740 : public QObject {
     Q_OBJECT
 
 public:
+    N6740();
     static int oldMain(int argc, char *argv[]);
     static void Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
     static void Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);

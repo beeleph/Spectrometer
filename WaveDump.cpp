@@ -1889,3 +1889,6 @@ CAEN_DGTZ_ConnectionType int_to_ConnectionType(int i){
     else
         return CAEN_DGTZ_USB;
 }
+N6740::N6740(){
+
+}
