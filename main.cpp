@@ -11,7 +11,6 @@ int main(int argc, char *argv[])
     qDebug() << "qDebug (with lower case q) testing. everything is ok, i suppose";
     N6740 test;
     test.oldMain(0,0);
-    //oldMain(0,0);
 
     return a.exec();
 }
@@ -20,14 +19,14 @@ int main(int argc, char *argv[])
 /*  Todo:
  *
  *
- *  По-хорошему надо и вдконфиг и вдамп переводить в классы наследуемые от QObject.
- * Все равно я буду использовать КЬЮшные методы для работы с конфигом, а также будет удобнее выводить дебаг инфу.
- * Также пойму лучше как работает код, уберу весь мусор, займусь рефакторингом. На это уйдут месяцы. Но кажется это того стоит.
  *
  *  Сначала довести проект до этапа где можно подключиться к оцифровщику и выполнить все функции которые были доступны в родном WD,
  * и только потом чистить проект от лишнего мусора, попутно проверяя работоспособность.
  *
- *  Запустить для проверки работы getch с GUI. Возможно ввод с клавиатуры будет возможен.
  *
  *  Полностью заменить CheckKeyboardCommand и соответсвующий вызов в Oldmain.
+ *  Нужные функции из CKC - quit, restart, sendSWtrigger, singlewrite/continuouswrite, set_relative_threshold -> swstartacquisition,
+ * calibrate_DC_offset -> -> ,
+ *  Зачем Freeevent при рестарте?, Что такое Interrupt? Только для VME?, CAEN_readData, CAEN_GetNumEvents, CAEN_ReadRegister(...,status,...)
+ *
 */

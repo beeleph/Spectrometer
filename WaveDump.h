@@ -28,6 +28,7 @@
 #include <CAENDigitizerType.h>
 #include <QApplication>
 #include <QDebug>
+#include <flash.h>
 
 #ifdef WIN32
 
@@ -187,6 +188,14 @@ public:
     static void calibrate(int handle, WaveDumpRun_t *WDrun, CAEN_DGTZ_BoardInfo_t BoardInfo);
     static void CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
     static int WriteOutputFiles(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_DGTZ_EventInfo_t *EventInfo, void *Event);
+
+    static int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg);
+    static void Load_DAC_Calibration_From_Flash(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    static void Save_DAC_Calibration_To_Flash(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    static void SetDefaultConfiguration(WaveDumpConfig_t *WDcfg);
+
+private:
+    int vasya;
 
 };
 
