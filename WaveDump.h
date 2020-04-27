@@ -17,8 +17,6 @@
 #ifndef _WAVEDUMP_H_
 #define _WAVEDUMP_H_
 
-//#include <QWidget>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,14 +97,36 @@ typedef struct{
     float offset[MAX_SET];
 }DAC_Calibration_data;
 
-typedef struct {
+class N6740 : public QObject {
+    Q_OBJECT
+
+public:
+    N6740();
+    int oldMain(int argc, char *argv[]);
+    void Set_relative_Threshold(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    void Calibrate_DC_Offset(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    void Calibrate_XX740_DC_Offset(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    int Set_calibrated_DCO(int handle, int ch, CAEN_DGTZ_BoardInfo_t BoardInfo);
+
+    int ParseConfigFile(FILE *f_ini);
+    int ProgramDigitizer(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    int WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data, uint32_t mask);
+    void CheckKeyboardCommands(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    int WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event);
+
+    void Load_DAC_Calibration_From_Flash(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    void Save_DAC_Calibration_To_Flash(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    void SetDefaultConfiguration();
+
+private:
+    // wdconfig part
     int LinkType;
     int LinkNum;
     int ConetNode;
     uint32_t BaseAddress;
-    int Nch;
-    int Nbit;
-    float Ts;
+    int Nch = 32;
+    int Nbit = 12;
+    float Ts = 16.0;
     int NumEvents;
     uint32_t RecordLength;
     int PostTrigger;
@@ -143,60 +163,6 @@ typedef struct {
     CAEN_DGTZ_DRS4Frequency_t DRS4Frequency;
     int StartupCalibration;
     DAC_Calibration_data DAC_Calib;
-} WaveDumpConfig_t;
-
-typedef struct WaveDumpRun_t {
-    int Quit;
-    int AcqRun;
-    int PlotType;
-    int ContinuousTrigger;
-    int ContinuousWrite;
-    int SingleWrite;
-    int ContinuousPlot;
-    int SinglePlot;
-    int SetPlotOptions;
-    int GroupPlotIndex;
-    int GroupPlotSwitch;
-    int ChannelPlotMask;
-    int Restart;
-    int RunHisto;
-    uint32_t *Histogram[MAX_CH];
-    FILE *fout[MAX_CH];
-} WaveDumpRun_t;
-
-/* Function prototypes */
-int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg);
-
-
-class N6740 : public QObject {
-    Q_OBJECT
-
-public:
-    N6740();
-    static int oldMain(int argc, char *argv[]);
-    static void Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static void Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static void Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static int Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-
-    static int ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static int GetMoreBoardInfo(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo, WaveDumpConfig_t *WDcfg);
-    static int WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data, uint32_t mask);
-    static void GoToNextEnabledGroup(WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg);
-    static int32_t BoardSupportsCalibration(CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static int32_t BoardSupportsTemperatureRead(CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static void calibrate(int handle, WaveDumpRun_t *WDrun, CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static void CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static int WriteOutputFiles(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_DGTZ_EventInfo_t *EventInfo, void *Event);
-
-    static int ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg);
-    static void Load_DAC_Calibration_From_Flash(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static void Save_DAC_Calibration_To_Flash(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo);
-    static void SetDefaultConfiguration(WaveDumpConfig_t *WDcfg);
-
-private:
-    int vasya;
-
 };
 
 /* new things */

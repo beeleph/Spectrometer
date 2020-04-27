@@ -119,89 +119,6 @@ static long get_time()
     return time_ms;
 }
 
-
-/*! \fn      int GetMoreBoardNumChannels(CAEN_DGTZ_BoardInfo_t BoardInfo,  WaveDumpConfig_t *WDcfg)
-*   \brief   calculate num of channels, num of bit and sampl period according to the board type
-*
-*   \param   BoardInfo   Board Type
-*   \param   WDcfg       pointer to the config. struct
-*   \return  0 = Success; -1 = unknown board type
-*/
-int N6740::GetMoreBoardInfo(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo, WaveDumpConfig_t *WDcfg)
-{
-    int ret;
-    switch(BoardInfo.FamilyCode) {
-        CAEN_DGTZ_DRS4Frequency_t freq;
-
-    case CAEN_DGTZ_XX724_FAMILY_CODE:
-    case CAEN_DGTZ_XX781_FAMILY_CODE:
-    case CAEN_DGTZ_XX780_FAMILY_CODE:
-        WDcfg->Nbit = 14; WDcfg->Ts = 10.0; break;
-    case CAEN_DGTZ_XX720_FAMILY_CODE: WDcfg->Nbit = 12; WDcfg->Ts = 4.0;  break;
-    case CAEN_DGTZ_XX721_FAMILY_CODE: WDcfg->Nbit =  8; WDcfg->Ts = 2.0;  break;
-    case CAEN_DGTZ_XX731_FAMILY_CODE: WDcfg->Nbit =  8; WDcfg->Ts = 2.0;  break;
-    case CAEN_DGTZ_XX751_FAMILY_CODE: WDcfg->Nbit = 10; WDcfg->Ts = 1.0;  break;
-    case CAEN_DGTZ_XX761_FAMILY_CODE: WDcfg->Nbit = 10; WDcfg->Ts = 0.25;  break;
-    case CAEN_DGTZ_XX740_FAMILY_CODE: WDcfg->Nbit = 12; WDcfg->Ts = 16.0; break;
-    case CAEN_DGTZ_XX725_FAMILY_CODE: WDcfg->Nbit = 14; WDcfg->Ts = 4.0; break;
-    case CAEN_DGTZ_XX730_FAMILY_CODE: WDcfg->Nbit = 14; WDcfg->Ts = 2.0; break;
-    default: return -1;
-    }
-    if (((BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE) ||
-        (BoardInfo.FamilyCode == CAEN_DGTZ_XX731_FAMILY_CODE) ) && WDcfg->DesMode)
-        WDcfg->Ts /= 2;
-
-    switch(BoardInfo.FamilyCode) {
-    case CAEN_DGTZ_XX724_FAMILY_CODE:
-    case CAEN_DGTZ_XX781_FAMILY_CODE:
-    case CAEN_DGTZ_XX780_FAMILY_CODE:
-    case CAEN_DGTZ_XX720_FAMILY_CODE:
-    case CAEN_DGTZ_XX721_FAMILY_CODE:
-    case CAEN_DGTZ_XX751_FAMILY_CODE:
-    case CAEN_DGTZ_XX761_FAMILY_CODE:
-    case CAEN_DGTZ_XX731_FAMILY_CODE:
-        switch(BoardInfo.FormFactor) {
-        case CAEN_DGTZ_VME64_FORM_FACTOR:
-        case CAEN_DGTZ_VME64X_FORM_FACTOR:
-            WDcfg->Nch = 8;
-            break;
-        case CAEN_DGTZ_DESKTOP_FORM_FACTOR:
-        case CAEN_DGTZ_NIM_FORM_FACTOR:
-            WDcfg->Nch = 4;
-            break;
-        }
-        break;
-    case CAEN_DGTZ_XX725_FAMILY_CODE:
-    case CAEN_DGTZ_XX730_FAMILY_CODE:
-        switch(BoardInfo.FormFactor) {
-        case CAEN_DGTZ_VME64_FORM_FACTOR:
-        case CAEN_DGTZ_VME64X_FORM_FACTOR:
-            WDcfg->Nch = 16;
-            break;
-        case CAEN_DGTZ_DESKTOP_FORM_FACTOR:
-        case CAEN_DGTZ_NIM_FORM_FACTOR:
-            WDcfg->Nch = 8;
-            break;
-        }
-        break;
-    case CAEN_DGTZ_XX740_FAMILY_CODE:
-        switch( BoardInfo.FormFactor) {
-        case CAEN_DGTZ_VME64_FORM_FACTOR:
-        case CAEN_DGTZ_VME64X_FORM_FACTOR:
-            WDcfg->Nch = 64;
-            break;
-        case CAEN_DGTZ_DESKTOP_FORM_FACTOR:
-        case CAEN_DGTZ_NIM_FORM_FACTOR:
-            WDcfg->Nch = 32;
-            break;
-        }
-        break;
-    default:
-        return -1;
-    }
-    return 0;
-}
-
 /*! \fn      int WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data, uint32_t mask)
 *   \brief   writes 'data' on register at 'address' using 'mask' as bitmask
 *
@@ -234,7 +151,7 @@ int N6740::WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data,
 *   \param   WDcfg:   WaveDumpConfig data structure
 *   \return  0 = Success; negative numbers are error codes
 */
-int N6740::ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
+int N6740::ProgramDigitizer(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo)
 {
     int i, j, ret = 0;
 
@@ -246,72 +163,72 @@ int N6740::ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardI
     }
 
     // Set the waveform test bit for debugging
-    if (WDcfg.TestPattern)
+    if (TestPattern)
         ret |= CAEN_DGTZ_WriteRegister(handle, CAEN_DGTZ_BROAD_CH_CONFIGBIT_SET_ADD, 1<<3);
     if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX731_FAMILY_CODE)) {
-        ret |= CAEN_DGTZ_SetDESMode(handle, WDcfg.DesMode);
+        ret |= CAEN_DGTZ_SetDESMode(handle, DesMode);
     }
-    ret |= CAEN_DGTZ_SetRecordLength(handle, WDcfg.RecordLength);
-    ret |= CAEN_DGTZ_GetRecordLength(handle, &WDcfg.RecordLength);
+    ret |= CAEN_DGTZ_SetRecordLength(handle, RecordLength);
+    ret |= CAEN_DGTZ_GetRecordLength(handle, &RecordLength);
 
     if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX724_FAMILY_CODE) {
-        ret |= CAEN_DGTZ_SetDecimationFactor(handle, WDcfg.DecimationFactor);
+        ret |= CAEN_DGTZ_SetDecimationFactor(handle, DecimationFactor);
     }
 
-    ret |= CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg.PostTrigger);
+    ret |= CAEN_DGTZ_SetPostTriggerSize(handle, PostTrigger);
     uint32_t pt;
     ret |= CAEN_DGTZ_GetPostTriggerSize(handle, &pt);
-    WDcfg.PostTrigger = pt;
-    ret |= CAEN_DGTZ_SetIOLevel(handle, WDcfg.FPIOtype);
-    if( WDcfg.InterruptNumEvents > 0) {
+    PostTrigger = pt;
+    ret |= CAEN_DGTZ_SetIOLevel(handle, FPIOtype);
+    if( InterruptNumEvents > 0) {
         // Interrupt handling
         if( ret |= CAEN_DGTZ_SetInterruptConfig( handle, CAEN_DGTZ_ENABLE,
             VME_INTERRUPT_LEVEL, VME_INTERRUPT_STATUS_ID,
-            (uint16_t)WDcfg.InterruptNumEvents, INTERRUPT_MODE)!= CAEN_DGTZ_Success) {
+            (uint16_t)InterruptNumEvents, INTERRUPT_MODE)!= CAEN_DGTZ_Success) {
                 qDebug() << "\nError configuring interrupts. Interrupts disabled\n\n";
-                WDcfg.InterruptNumEvents = 0;
+                InterruptNumEvents = 0;
         }
     }
 	
-    ret |= CAEN_DGTZ_SetMaxNumEventsBLT(handle, WDcfg.NumEvents);
+    ret |= CAEN_DGTZ_SetMaxNumEventsBLT(handle, NumEvents);
     ret |= CAEN_DGTZ_SetAcquisitionMode(handle, CAEN_DGTZ_SW_CONTROLLED);
-    ret |= CAEN_DGTZ_SetExtTriggerInputMode(handle, WDcfg.ExtTriggerMode);
+    ret |= CAEN_DGTZ_SetExtTriggerInputMode(handle, ExtTriggerMode);
 
     if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE){
-        ret |= CAEN_DGTZ_SetGroupEnableMask(handle, WDcfg.EnableMask);
-        for(i=0; i<(WDcfg.Nch/8); i++) {
-            if (WDcfg.EnableMask & (1<<i)) {
-                if(WDcfg.Version_used[i] == 1)
-                    ret |= Set_calibrated_DCO(handle, i, &WDcfg, BoardInfo);
+        ret |= CAEN_DGTZ_SetGroupEnableMask(handle, EnableMask);
+        for(i=0; i<(Nch/8); i++) {
+            if (EnableMask & (1<<i)) {
+                if(Version_used[i] == 1)
+                    ret |= Set_calibrated_DCO(handle, i, BoardInfo);
                 else
-                    ret |= CAEN_DGTZ_SetGroupDCOffset(handle, i, WDcfg.DCoffset[i]);
-                ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, WDcfg.ChannelTriggerMode[i], (1<<i));
-                ret |= CAEN_DGTZ_SetGroupTriggerThreshold(handle, i, WDcfg.Threshold[i]);
-                ret |= CAEN_DGTZ_SetChannelGroupMask(handle, i, WDcfg.GroupTrgEnableMask[i]);
+                    ret |= CAEN_DGTZ_SetGroupDCOffset(handle, i, DCoffset[i]);
+                ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, ChannelTriggerMode[i], (1<<i));
+                ret |= CAEN_DGTZ_SetGroupTriggerThreshold(handle, i, Threshold[i]);
+                ret |= CAEN_DGTZ_SetChannelGroupMask(handle, i, GroupTrgEnableMask[i]);
             }
-            ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, PulsePolarity_to_TriggerPolarity(WDcfg.PulsePolarity[i])); //.TriggerEdge
+            ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, PulsePolarity_to_TriggerPolarity(PulsePolarity[i])); //.TriggerEdge
         }
     } else {
-        ret |= CAEN_DGTZ_SetChannelEnableMask(handle, WDcfg.EnableMask);
-        for (i = 0; i < WDcfg.Nch; i++) {
-            if (WDcfg.EnableMask & (1<<i)) {
-				if (WDcfg.Version_used[i] == 1)
-					ret |= Set_calibrated_DCO(handle, i, &WDcfg, BoardInfo);
+        ret |= CAEN_DGTZ_SetChannelEnableMask(handle, EnableMask);
+        for (i = 0; i < Nch; i++) {
+            if (EnableMask & (1<<i)) {
+                if (Version_used[i] == 1)
+                    ret |= Set_calibrated_DCO(handle, i, BoardInfo);
 				else
-					ret |= CAEN_DGTZ_SetChannelDCOffset(handle, i, WDcfg.DCoffset[i]);
+                    ret |= CAEN_DGTZ_SetChannelDCOffset(handle, i, DCoffset[i]);
                 if (BoardInfo.FamilyCode != CAEN_DGTZ_XX730_FAMILY_CODE &&
                     BoardInfo.FamilyCode != CAEN_DGTZ_XX725_FAMILY_CODE)
-                    ret |= CAEN_DGTZ_SetChannelSelfTrigger(handle, WDcfg.ChannelTriggerMode[i], (1<<i));
-                ret |= CAEN_DGTZ_SetChannelTriggerThreshold(handle, i, WDcfg.Threshold[i]);
-                ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, PulsePolarity_to_TriggerPolarity(WDcfg.PulsePolarity[i])); //.TriggerEdge
+                    ret |= CAEN_DGTZ_SetChannelSelfTrigger(handle, ChannelTriggerMode[i], (1<<i));
+                ret |= CAEN_DGTZ_SetChannelTriggerThreshold(handle, i, Threshold[i]);
+                ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, PulsePolarity_to_TriggerPolarity(PulsePolarity[i])); //.TriggerEdge
             }
         }
         if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE ||
             BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) {
             // channel pair settings for x730 boards
-            for (i = 0; i < WDcfg.Nch; i += 2) {
-                if (WDcfg.EnableMask & (0x3 << i)) {
-                    CAEN_DGTZ_TriggerMode_t mode = WDcfg.ChannelTriggerMode[i];
+            for (i = 0; i < Nch; i += 2) {
+                if (EnableMask & (0x3 << i)) {
+                    CAEN_DGTZ_TriggerMode_t mode = ChannelTriggerMode[i];
                     uint32_t pair_chmask = 0;
 
                     // Build mode and relevant channelmask. The behaviour is that,
@@ -319,18 +236,18 @@ int N6740::ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardI
                     // this channel doesn't take part to the trigger generation.
                     // Otherwise, if both are different from DISABLED, the one of
                     // the even channel is used.
-                    if (WDcfg.ChannelTriggerMode[i] != CAEN_DGTZ_TRGMODE_DISABLED) {
-                        if (WDcfg.ChannelTriggerMode[i + 1] == CAEN_DGTZ_TRGMODE_DISABLED)
+                    if (ChannelTriggerMode[i] != CAEN_DGTZ_TRGMODE_DISABLED) {
+                        if (ChannelTriggerMode[i + 1] == CAEN_DGTZ_TRGMODE_DISABLED)
                             pair_chmask = (0x1 << i);
                         else
                             pair_chmask = (0x3 << i);
                     }
                     else {
-                        mode = WDcfg.ChannelTriggerMode[i + 1];
+                        mode = ChannelTriggerMode[i + 1];
                         pair_chmask = (0x2 << i);
                     }
 
-                    pair_chmask &= WDcfg.EnableMask;
+                    pair_chmask &= EnableMask;
                     ret |= CAEN_DGTZ_SetChannelSelfTrigger(handle, mode, pair_chmask);
                 }
             }
@@ -338,85 +255,13 @@ int N6740::ProgramDigitizer(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardI
     }
 
     /* execute generic write commands */
-    for(i=0; i<WDcfg.GWn; i++)
-        ret |= WriteRegisterBitmask(handle, WDcfg.GWaddr[i], WDcfg.GWdata[i], WDcfg.GWmask[i]);
+    for(i=0; i<GWn; i++)
+        ret |= WriteRegisterBitmask(handle, GWaddr[i], GWdata[i], GWmask[i]);
 
     if (ret)
         qDebug() << "Warning: errors found during the programming of the digitizer.\nSome settings may not be executed\n";
 
     return 0;
-}
-
-/*! \fn      void GoToNextEnabledGroup(WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg)
-*   \brief   selects the next enabled group for plotting
-*
-*   \param   WDrun:   Pointer to the WaveDumpRun_t data structure
-*   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
-*/
-void N6740::GoToNextEnabledGroup(WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg) {
-    if ((WDcfg->EnableMask) && (WDcfg->Nch>8)) {
-        int orgPlotIndex = WDrun->GroupPlotIndex;
-        do {
-            WDrun->GroupPlotIndex = (++WDrun->GroupPlotIndex)%(WDcfg->Nch/8);
-        } while( !((1 << WDrun->GroupPlotIndex)& WDcfg->EnableMask));
-        if( WDrun->GroupPlotIndex != orgPlotIndex) {
-            qDebug() << "Plot group set to \n" << WDrun->GroupPlotIndex;
-        }
-    }
-}
-
-/*! \brief   return TRUE if board descriped by 'BoardInfo' supports
-*            calibration or not.
-*
-*   \param   BoardInfo board descriptor
-*/
-int32_t N6740::BoardSupportsCalibration(CAEN_DGTZ_BoardInfo_t BoardInfo) {
-    return
-		BoardInfo.FamilyCode == CAEN_DGTZ_XX761_FAMILY_CODE ||
-        BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE ||
-        BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE ||
-        BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE;
-}
-
-/*! \brief   return TRUE if board descriped by 'BoardInfo' supports
-*            temperature read or not.
-*
-*   \param   BoardInfo board descriptor
-*/
-int32_t N6740::BoardSupportsTemperatureRead(CAEN_DGTZ_BoardInfo_t BoardInfo) {
-    return
-        BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE ||
-        BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE ||
-        BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE;
-}
-
-/*! \brief   Write the event data on x742 boards into the output files
-*
-*   \param   WDrun Pointer to the WaveDumpRun data structure
-*   \param   WDcfg Pointer to the WaveDumpConfig data structure
-*   \param   EventInfo Pointer to the EventInfo data structure
-*   \param   Event Pointer to the Event to write
-*/
-void N6740::calibrate(int handle, WaveDumpRun_t *WDrun, CAEN_DGTZ_BoardInfo_t BoardInfo) {
-    qDebug() << "\n";
-    if (BoardSupportsCalibration(BoardInfo)) {
-        if (WDrun->AcqRun == 0) {
-            int32_t ret = CAEN_DGTZ_Calibrate(handle);
-            if (ret == CAEN_DGTZ_Success) {
-                qDebug() << "ADC Calibration successfully executed.\n";
-            }
-            else {
-                qDebug() << "ADC Calibration failed. CAENDigitizer ERR \n" << ret;
-            }
-            qDebug() << "\n";
-        }
-        else {
-            qDebug() << "Can't run ADC calibration while acquisition is running.\n";
-        }
-    }
-    else {
-        qDebug() << "ADC Calibration not needed for this board family.\n";
-    }
 }
 
 
@@ -427,7 +272,7 @@ void N6740::calibrate(int handle, WaveDumpRun_t *WDrun, CAEN_DGTZ_BoardInfo_t Bo
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Calibrate_XX740_DC_Offset(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo){
 	float cal[MAX_CH];
 	float offset[MAX_CH] = { 0 };
 	int i = 0, acq = 0, k = 0, p=0, g = 0;
@@ -574,8 +419,8 @@ void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_
             qDebug() << "Group DAC calibration ready.\n" << g;
             qDebug() << "Cal  offset \n" << cal[g] << offset[g];
 
-			WDcfg->DAC_Calib.cal[g] = cal[g];
-			WDcfg->DAC_Calib.offset[g] = offset[g];
+            DAC_Calib.cal[g] = cal[g];
+            DAC_Calib.offset[g] = offset[g];
 	}
 
 	CAEN_DGTZ_ClearData(handle);
@@ -585,20 +430,20 @@ void N6740::Calibrate_XX740_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_
 
 	CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
     // ret's was changed by me from |= to =. bcs cpp has problems with |=. it's not crucial
-    ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, WDcfg->NumEvents);
-    ret = CAEN_DGTZ_SetDecimationFactor(handle,WDcfg->DecimationFactor);
-    ret = CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg->PostTrigger);
+    ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, NumEvents);
+    ret = CAEN_DGTZ_SetDecimationFactor(handle,DecimationFactor);
+    ret = CAEN_DGTZ_SetPostTriggerSize(handle, PostTrigger);
     ret = CAEN_DGTZ_SetAcquisitionMode(handle, mem_mode);
-    ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, WDcfg->ExtTriggerMode);
-    ret = CAEN_DGTZ_SetGroupEnableMask(handle, WDcfg->EnableMask);
+    ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, ExtTriggerMode);
+    ret = CAEN_DGTZ_SetGroupEnableMask(handle, EnableMask);
 	for (i = 0; i < BoardInfo.Channels; i++) {
-		if (WDcfg->EnableMask & (1 << i))
-            ret = CAEN_DGTZ_SetGroupSelfTrigger(handle, WDcfg->ChannelTriggerMode[i], (1 << i));
+        if (EnableMask & (1 << i))
+            ret = CAEN_DGTZ_SetGroupSelfTrigger(handle, ChannelTriggerMode[i], (1 << i));
 	}
 	if (ret)
         qDebug() << "Error setting recorded parameters\n";
 
-	Save_DAC_Calibration_To_Flash(handle, *WDcfg, BoardInfo);
+    Save_DAC_Calibration_To_Flash(handle, BoardInfo);
 
 QuitProgram:
 		if (ErrCode) {
@@ -1206,7 +1051,7 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
 			else
             // Update the group plot index
             if ((WDcfg->EnableMask) && (WDcfg->Nch>8))
-                GoToNextEnabledGroup(WDrun, WDcfg);
+                //GoToNextEnabledGroup(WDrun, WDcfg);
             break;
         case 'q' :
             WDrun->Quit = 1;
@@ -1281,30 +1126,10 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
             }
             break;
         case 'm' :
-            if (BoardSupportsTemperatureRead(BoardInfo)) {
-                if (WDrun->AcqRun == 0) {
-                    int32_t ch;
-                    for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
-                        uint32_t temp;
-                        int32_t ret = CAEN_DGTZ_ReadTemperature(handle, ch, &temp);
-                        qDebug() << "CH%02d: " << ch;
-                        if (ret == CAEN_DGTZ_Success)
-                            qDebug() << "%u C\n" << temp;
-                        else
-                            qDebug() << "CAENDigitizer ERR %d\n" << ret;
-                    }
-                    qDebug() << "\n";
-                }
-                else {
-                    qDebug() << "Can't run temperature monitor while acquisition is running.\n";
-                }
-            }
-            else {
-                qDebug() << "Board Family doesn't support ADC Temperature Monitor.\n";
-            }
+            qDebug() << "Board Family doesn't support ADC Temperature Monitor.\n";
             break;
         case 'c' :
-            calibrate(handle, WDrun, BoardInfo);
+            //calibrate(handle, WDrun, BoardInfo);
             break;
 		case 'D':
 			if (WDrun->AcqRun == 0) {
@@ -1587,8 +1412,8 @@ int N6740::oldMain(int argc, char *argv[])
     Load_DAC_Calibration_From_Flash(handle, &WDcfg, BoardInfo);
 
     // Perform calibration (if needed).
-    if (WDcfg.StartupCalibration)
-        calibrate(handle, &WDrun, BoardInfo);
+    //if (WDcfg.StartupCalibration)
+        //calibrate(handle, &WDrun, BoardInfo);
 
 Restart:
     // mask the channels not available for this model
@@ -1624,7 +1449,7 @@ Restart:
     // Select the next enabled group for plotting
     if ((WDcfg.EnableMask) && (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE))
         if( ((WDcfg.EnableMask>>WDrun.GroupPlotIndex)&0x1)==0 )
-            GoToNextEnabledGroup(&WDrun, &WDcfg);
+            //GoToNextEnabledGroup(&WDrun, &WDcfg);
 
     // Read again the board infos, just in case some of them were changed by the programming
     // (like, for example, the TSample and the number of channels if DES mode is changed)
