@@ -111,7 +111,6 @@ public:
     int ParseConfigFile(FILE *f_ini);
     int ProgramDigitizer(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
     int WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data, uint32_t mask);
-    void CheckKeyboardCommands(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
     int WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event);
 
     void Load_DAC_Calibration_From_Flash(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo);
@@ -163,6 +162,9 @@ private:
     CAEN_DGTZ_DRS4Frequency_t DRS4Frequency;
     int StartupCalibration;
     DAC_Calibration_data DAC_Calib;
+
+    // wdrun part
+    FILE *fout[MAX_CH];
 };
 
 /* new things */

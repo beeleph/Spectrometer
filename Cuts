@@ -1,0 +1,208 @@
+
+/*! \fn      void CheckKeyboardCommands(WaveDumpRun_t *WDrun)
+*   \brief   check if there is a key pressed and execute the relevant command
+*
+*   \param   WDrun:   Pointer to the WaveDumpRun_t data structure
+*   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
+*   \param   BoardInfo: structure with the board info
+*/
+void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
+{
+    int c = 0;
+        uint8_t percent;
+    if(!kbhit())
+        return;
+
+    c = getch();
+    if ((c < '9') && (c >= '0')) {
+        int ch = c-'0';
+        if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE){
+            WDrun->ChannelPlotMask ^= (1 << ch);
+            if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) && (ch == 8))
+                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex * 8 << " belongs to a different group\n";
+                        else
+                        if (WDrun->ChannelPlotMask & (1 << ch))
+                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex*8 << " enabled for plotting\n";
+            else
+                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex*8 << " disabled for plotting\n";
+        }
+                else if((BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) && (WDcfg->Nch>8)) {
+                ch = ch + 8 * WDrun->GroupPlotSwitch;
+                if(ch!= 8 && WDcfg->EnableMask & (1 << ch)){
+                WDrun->ChannelPlotMask ^= (1 << ch);
+                if (WDrun->ChannelPlotMask & (1 << ch))
+            qDebug() << "Channel " << ch << " enabled for plotting\n";
+                else
+            qDebug() << "Channel " << ch << " disabled for plotting\n";
+                }
+        else
+            qDebug() << "Channel "<< ch << " not enabled for acquisition\n";
+                }
+                else {
+            WDrun->ChannelPlotMask ^= (1 << ch);
+            if (WDrun->ChannelPlotMask & (1 << ch))
+                qDebug() << "Channel %d enabled for plotting\n" << ch;
+            else
+                qDebug() << "Channel %d disabled for plotting\n" << ch;
+        }
+    } else {
+        switch(c) {
+        case 'g' :
+                        //for boards with >8 channels
+                        if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) && (WDcfg->Nch > 8))
+                        {
+                                if (WDrun->GroupPlotSwitch == 0) {
+                                        WDrun->GroupPlotSwitch = 1;
+                    qDebug() << "Channel group set to %d: use numbers 0-7 for channels 8-15\n" << WDrun->GroupPlotSwitch;
+                                }
+                                else if(WDrun->GroupPlotSwitch == 1)	{
+                                        WDrun->GroupPlotSwitch = 0;
+                    qDebug() << "Channel group set to %d: use numbers 0-7 for channels 0-7\n" << WDrun->GroupPlotSwitch;
+                                }
+                        }
+                        else
+            // Update the group plot index
+            if ((WDcfg->EnableMask) && (WDcfg->Nch>8))
+                //GoToNextEnabledGroup(WDrun, WDcfg);
+            break;
+        case 'q' :
+            WDrun->Quit = 1;
+            break;
+        case 'R' :
+            WDrun->Restart = 1;
+            break;
+        case 't' :
+            if (!WDrun->ContinuousTrigger) {
+                CAEN_DGTZ_SendSWtrigger(handle);
+                qDebug() << "Single Software Trigger issued\n";
+            }
+            break;
+        case 'T' :
+            WDrun->ContinuousTrigger ^= 1;
+            if (WDrun->ContinuousTrigger)
+                qDebug() << "Continuous trigger is enabled\n";
+            else
+                qDebug() << "Continuous trigger is disabled\n";
+            break;
+        case 'P' :
+            if (WDrun->ChannelPlotMask == 0)
+                qDebug() << "No channel enabled for plotting\n";
+            else
+                WDrun->ContinuousPlot ^= 1;
+            break;
+        case 'p' :
+            if (WDrun->ChannelPlotMask == 0)
+                qDebug() << "No channel enabled for plotting\n";
+            else
+                WDrun->SinglePlot = 1;
+            break;
+        case 'f' :
+            WDrun->PlotType = (WDrun->PlotType == PLOT_FFT) ? PLOT_WAVEFORMS : PLOT_FFT;
+            WDrun->SetPlotOptions = 1;
+            break;
+        case 'h' :
+            WDrun->PlotType = (WDrun->PlotType == PLOT_HISTOGRAM) ? PLOT_WAVEFORMS : PLOT_HISTOGRAM;
+            WDrun->RunHisto = (WDrun->PlotType == PLOT_HISTOGRAM);
+            WDrun->SetPlotOptions = 1;
+            break;
+        case 'w' :
+            if (!WDrun->ContinuousWrite)
+                WDrun->SingleWrite = 1;
+            break;
+        case 'W' :
+            WDrun->ContinuousWrite ^= 1;
+            if (WDrun->ContinuousWrite)
+                qDebug() << "Continuous writing is enabled\n";
+            else
+                qDebug() << "Continuous writing is disabled\n";
+            break;
+        case 's' :
+            if (WDrun->AcqRun == 0) {
+
+                Set_relative_Threshold(handle, WDcfg, BoardInfo);
+
+                                if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE)
+                                        WDrun->GroupPlotSwitch = 0;
+
+                qDebug() << "Acquisition started\n";
+
+                CAEN_DGTZ_SWStartAcquisition(handle);
+
+                WDrun->AcqRun = 1;
+
+            } else {
+                qDebug() << "Acquisition stopped\n";
+                CAEN_DGTZ_SWStopAcquisition(handle);
+                WDrun->AcqRun = 0;
+                                //WDrun->Restart = 1;
+            }
+            break;
+        case 'm' :
+            qDebug() << "Board Family doesn't support ADC Temperature Monitor.\n";
+            break;
+        case 'c' :
+            //calibrate(handle, WDrun, BoardInfo);
+            break;
+                case 'D':
+                        if (WDrun->AcqRun == 0) {
+                qDebug() << "Disconnect input signal from all channels and press any key to start.\n";
+                                getch();
+                                if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)//XX740 specific
+                                        Calibrate_XX740_DC_Offset(handle, WDcfg, BoardInfo);
+                else
+                                        Calibrate_DC_Offset(handle, WDcfg, BoardInfo);
+
+                                int i = 0;
+                                CAEN_DGTZ_ErrorCode err;
+                                //set new dco values using calibration data
+                                for (i = 0; i < BoardInfo.Channels; i++) {
+                                        if (WDcfg->EnableMask & (1 << i)) {
+                                                if(WDcfg->Version_used[i] == 1)
+                                                        Set_calibrated_DCO(handle, i, WDcfg, BoardInfo);
+                                                else {
+                                                        err = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)i, WDcfg->DCoffset[i]);
+                                                        if (err)
+                                qDebug() << "Error setting channel %d offset\n" << i;
+                                                }
+                                        }
+                                }
+#ifdef _WIN32
+                                Sleep(200);
+#else
+                                usleep(200000);
+#endif
+                qDebug() << "DAC calibration ready!!\n";
+                        }
+                        else {
+                qDebug() << "Acquisition is running. Stop acquisition to start DAC calibration.\n";
+                        }
+                        break;
+        case ' ' :
+            qDebug() << "\n                            Bindkey help                                \n";
+            qDebug() << "--------------------------------------------------------------------------\n";
+            qDebug() << "  [q]   Quit\n";
+            qDebug() << "  [R]   Reload configuration file and restart\n";
+            qDebug() << "  [s]   Start/Stop acquisition\n";
+            qDebug() << "  [t]   Send a software trigger (single shot)\n";
+            qDebug() << "  [T]   Enable/Disable continuous software trigger\n";
+            qDebug() << "  [w]   Write one event to output file\n";
+            qDebug() << "  [W]   Enable/Disable continuous writing to output file\n";
+            qDebug() << "  [p]   Plot one event\n";
+            qDebug() << "  [P]   Enable/Disable continuous plot\n";
+            qDebug() << "  [f]   Toggle between FFT and Waveform plot\n";
+            qDebug() << "  [h]   Toggle between Histogram and Waveform plot\n";
+            qDebug() << "  [g]   Change the index of the group to plot (XX740 family)\n";
+            qDebug() << "  [m]   Single ADC temperature monitor (XX751/30/25 only)\n";
+            qDebug() << "  [c]   ADC Calibration (XX751/30/25 only)\n";
+            qDebug() << "  [D]   DAC offset calibration\n";
+            qDebug() << " [0-7]  Enable/Disable one channel on the plot\n";
+            qDebug() << "        For x740 family this is the plotted group's relative channel index\n";
+            qDebug() << "[SPACE] This help\n";
+            qDebug() << "--------------------------------------------------------------------------\n";
+            qDebug() << "Press a key to continue\n";
+            //getch();
+            break;
+        default :   break;
+        }
+    }
+}

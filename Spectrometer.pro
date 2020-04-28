@@ -41,6 +41,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 DISTFILES += \
+    Cuts \
     README.md \
     cfg/WaveDumpConfig.txt \
     cfg/WaveDumpConfig_X740.txt \

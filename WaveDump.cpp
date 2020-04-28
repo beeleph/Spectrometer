@@ -463,13 +463,13 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Set_relative_Threshold(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo){
 	int ch = 0, i = 0;
 
 	//preliminary check: if baseline shift is not enabled for any channel quit
 	int should_start = 0;
 	for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
-		if (WDcfg->EnableMask & (1 << ch) && WDcfg->Version_used[ch] == 1) {
+        if (EnableMask & (1 << ch) && Version_used[ch] == 1) {
 			should_start = 1;
 			break;
 		}
@@ -500,7 +500,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 		ErrCode = ERR_MALLOC;
 		goto QuitProgram;
 	}
-	if (WDcfg->Nbit == 8)
+    if (Nbit == 8)
 		ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event8);
 	else {
 		ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
@@ -518,7 +518,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 	}
 	//try to set a small threshold to get a self triggered event
 	for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
-		if (WDcfg->EnableMask & (1 << ch) && WDcfg->Version_used[ch] == 1) {
+        if (EnableMask & (1 << ch) && Version_used[ch] == 1) {
 			if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)
 				ret = CAEN_DGTZ_GetGroupDCOffset(handle, ch, &dco);
 			else
@@ -530,7 +530,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 			dco_percent = (float)dco / 65535.;
 			expected_baseline = pow(2, (double)BoardInfo.ADC_NBits) * (1.0 - dco_percent);
 
-			custom_thr = (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive) ? ((uint32_t)expected_baseline + 100) : ((uint32_t)expected_baseline - 100);
+            custom_thr = (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive) ? ((uint32_t)expected_baseline + 100) : ((uint32_t)expected_baseline - 100);
 			
 			if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)
 				ret = CAEN_DGTZ_SetGroupTriggerThreshold(handle, ch, custom_thr);
@@ -563,7 +563,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 			goto QuitProgram;
 		}
 		// decode the event //
-		if (WDcfg->Nbit == 8)
+        if (Nbit == 8)
 			ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event8);
 		else
 			ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
@@ -574,9 +574,9 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 		}
 
 		for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
-			if (WDcfg->EnableMask & (1 << ch) && WDcfg->Version_used[ch] == 1) {
+            if (EnableMask & (1 << ch) && Version_used[ch] == 1) {
 				event_ch = (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) ? (ch * 8) : ch;//for x740 boards shift to channel 0 of next group
-				size = (WDcfg->Nbit == 8) ? Event8->ChSize[event_ch] : Event16->ChSize[event_ch];
+                size = (Nbit == 8) ? Event8->ChSize[event_ch] : Event16->ChSize[event_ch];
 				if (size == 0) {//no data from channel ch
 					no_self_triggered_event[ch] = 1;
 					sw_trigger_needed = 1;
@@ -587,7 +587,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 
 					for (i = 0; i < samples; i++) //mean over some pre trigger samples
 					{
-						if (WDcfg->Nbit == 8)
+                        if (Nbit == 8)
 							baseline[ch] += (int)(Event8->DataChannel[event_ch][i]);
 						else
 							baseline[ch] += (int)(Event16->DataChannel[event_ch][i]);
@@ -595,19 +595,19 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 					baseline[ch] = (baseline[ch] / samples);
 				}
 
-				if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
-					WDcfg->Threshold[ch] = (uint32_t)baseline[ch] + thr_file[ch];
-				else 	if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative)
-					WDcfg->Threshold[ch] = (uint32_t)baseline[ch] - thr_file[ch];
+                if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
+                    Threshold[ch] = (uint32_t)baseline[ch] + thr_file[ch];
+                else 	if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative)
+                    Threshold[ch] = (uint32_t)baseline[ch] - thr_file[ch];
 
-				if (WDcfg->Threshold[ch] < 0) WDcfg->Threshold[ch] = 0;
+                if (Threshold[ch] < 0) Threshold[ch] = 0;
 				size = (int)pow(2, (double)BoardInfo.ADC_NBits);
-				if (WDcfg->Threshold[ch] > (uint32_t)size) WDcfg->Threshold[ch] = size;
+                if (Threshold[ch] > (uint32_t)size) Threshold[ch] = size;
 
 				if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)
-					ret = CAEN_DGTZ_SetGroupTriggerThreshold(handle, ch, WDcfg->Threshold[ch]);
+                    ret = CAEN_DGTZ_SetGroupTriggerThreshold(handle, ch, Threshold[ch]);
 				else
-					ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, WDcfg->Threshold[ch]);
+                    ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, Threshold[ch]);
 				if (ret)
                     qDebug() << "Warning: error setting ch " << ch << " corrected threshold\n";
 			}
@@ -639,7 +639,7 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 			goto QuitProgram;
 		}
 		// decode the event //
-		if (WDcfg->Nbit == 8)
+        if (Nbit == 8)
 			ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event8);
 		else
 			ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
@@ -650,15 +650,15 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 		}
 
 		for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
-			if (WDcfg->EnableMask & (1 << ch) && WDcfg->Version_used[ch] == 1) {
+            if (EnableMask & (1 << ch) && Version_used[ch] == 1) {
 				event_ch = (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) ? (ch * 8) : ch;//for x740 boards shift to channel 0 of next group
-				size = (WDcfg->Nbit == 8) ? Event8->ChSize[event_ch] : Event16->ChSize[event_ch];
+                size = (Nbit == 8) ? Event8->ChSize[event_ch] : Event16->ChSize[event_ch];
 				if (!no_self_triggered_event[ch])//we already have a good baseline for channel ch
 					continue;
 
 				//use some samples to calculate the baseline
 				for (i = 1; i < 11; i++){ //mean over 10 samples
-					if (WDcfg->Nbit == 8)
+                    if (Nbit == 8)
 						baseline[ch] += (int)(Event8->DataChannel[event_ch][i]);
 					else
 						baseline[ch] += (int)(Event16->DataChannel[event_ch][i]);
@@ -666,19 +666,19 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 					baseline[ch] = (baseline[ch] / 10);
 			}
 
-			if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
-				WDcfg->Threshold[ch] = (uint32_t)baseline[ch] + thr_file[ch];
-			else 	if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative)
-				WDcfg->Threshold[ch] = (uint32_t)baseline[ch] - thr_file[ch];
+            if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
+                Threshold[ch] = (uint32_t)baseline[ch] + thr_file[ch];
+            else 	if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative)
+                Threshold[ch] = (uint32_t)baseline[ch] - thr_file[ch];
 
-			if (WDcfg->Threshold[ch] < 0) WDcfg->Threshold[ch] = 0;
+            if (Threshold[ch] < 0) Threshold[ch] = 0;
 				size = (int)pow(2, (double)BoardInfo.ADC_NBits);
-			if (WDcfg->Threshold[ch] > (uint32_t)size) WDcfg->Threshold[ch] = size;
+            if (Threshold[ch] > (uint32_t)size) Threshold[ch] = size;
 
 			if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)
-				ret = CAEN_DGTZ_SetGroupTriggerThreshold(handle, ch, WDcfg->Threshold[ch]);
+                ret = CAEN_DGTZ_SetGroupTriggerThreshold(handle, ch, Threshold[ch]);
 			else
-				ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, WDcfg->Threshold[ch]);
+                ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, Threshold[ch]);
 			if (ret)
                     qDebug() << "Warning: error setting ch " << ch << " corrected threshold\n";
 		}
@@ -687,14 +687,14 @@ void N6740::Set_relative_Threshold(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGT
 	CAEN_DGTZ_SWStopAcquisition(handle);
 
 	//reset posttrigger
-	ret = CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg->PostTrigger);
+    ret = CAEN_DGTZ_SetPostTriggerSize(handle, PostTrigger);
 	if (ret)
         qDebug() << "Error resetting post trigger.\n";
 
 	CAEN_DGTZ_ClearData(handle);
 
 	CAEN_DGTZ_FreeReadoutBuffer(&buffer);
-	if (WDcfg->Nbit == 8)
+    if (Nbit == 8)
 		CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
 	else
 		CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
@@ -717,7 +717,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Calibrate_DC_Offset(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo){
 	float cal[MAX_CH];
 	float offset[MAX_CH] = { 0 };
 	int i = 0, k = 0, p = 0, acq = 0, ch = 0;
@@ -771,7 +771,7 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 		ErrCode = ERR_MALLOC;
 		goto QuitProgram;
 	}
-	if (WDcfg->Nbit == 8)
+    if (Nbit == 8)
 		ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event8);
 	else {
 		ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
@@ -820,7 +820,7 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 					goto QuitProgram;
 			}
 			// decode the event //
-			if (WDcfg->Nbit == 8)
+            if (Nbit == 8)
 				ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event8);
 				else
 				ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
@@ -833,7 +833,7 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
 			for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++){
 					for (i = 1; i < 21; i++) //mean over 20 samples
 					{
-						if (WDcfg->Nbit == 8)
+                        if (Nbit == 8)
 							value[acq][ch] += (int)(Event8->DataChannel[ch][i]);
 						else
 							value[acq][ch] += (int)(Event16->DataChannel[ch][i]);
@@ -881,64 +881,64 @@ void N6740::Calibrate_DC_Offset(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_B
             qDebug() << "Channel " << ch << " DAC calibration ready.\n";
 			//printf("Channel %d --> Cal %f   offset %f\n", ch, cal[ch], offset[ch]);
 
-			WDcfg->DAC_Calib.cal[ch] = cal[ch];
-			WDcfg->DAC_Calib.offset[ch] = offset[ch];
+            DAC_Calib.cal[ch] = cal[ch];
+            DAC_Calib.offset[ch] = offset[ch];
 	}
 
 	CAEN_DGTZ_ClearData(handle);
 
 	 ///free events e buffer
 	CAEN_DGTZ_FreeReadoutBuffer(&buffer);
-	if (WDcfg->Nbit == 8)
+    if (Nbit == 8)
 		CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
 	else
 		CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
 
 	//reset settings
-    ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, WDcfg->NumEvents);
-    ret = CAEN_DGTZ_SetPostTriggerSize(handle, WDcfg->PostTrigger);
+    ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, NumEvents);
+    ret = CAEN_DGTZ_SetPostTriggerSize(handle, PostTrigger);
     ret = CAEN_DGTZ_SetAcquisitionMode(handle, mem_mode);
-    ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, WDcfg->ExtTriggerMode);
-    ret = CAEN_DGTZ_SetChannelEnableMask(handle, WDcfg->EnableMask);
+    ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, ExtTriggerMode);
+    ret = CAEN_DGTZ_SetChannelEnableMask(handle, EnableMask);
 	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX724_FAMILY_CODE)
-        ret = CAEN_DGTZ_SetDecimationFactor(handle, WDcfg->DecimationFactor);
+        ret = CAEN_DGTZ_SetDecimationFactor(handle, DecimationFactor);
 	if (ret)
         qDebug() << "Error resetting some parameters after DAC calibration\n";
 
 	//reset self trigger mode settings
 	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) {
 		// channel pair settings for x730 boards
-		for (i = 0; i < WDcfg->Nch; i += 2) {
-			if (WDcfg->EnableMask & (0x3 << i)) {
-				CAEN_DGTZ_TriggerMode_t mode = WDcfg->ChannelTriggerMode[i];
+        for (i = 0; i < Nch; i += 2) {
+            if (EnableMask & (0x3 << i)) {
+                CAEN_DGTZ_TriggerMode_t mode = ChannelTriggerMode[i];
 				uint32_t pair_chmask = 0;
 
-				if (WDcfg->ChannelTriggerMode[i] != CAEN_DGTZ_TRGMODE_DISABLED) {
-					if (WDcfg->ChannelTriggerMode[i + 1] == CAEN_DGTZ_TRGMODE_DISABLED)
+                if (ChannelTriggerMode[i] != CAEN_DGTZ_TRGMODE_DISABLED) {
+                    if (ChannelTriggerMode[i + 1] == CAEN_DGTZ_TRGMODE_DISABLED)
 						pair_chmask = (0x1 << i);
 					else
 						pair_chmask = (0x3 << i);
 				}
 				else {
-					mode = WDcfg->ChannelTriggerMode[i + 1];
+                    mode = ChannelTriggerMode[i + 1];
 					pair_chmask = (0x2 << i);
 				}
 
-				pair_chmask &= WDcfg->EnableMask;
+                pair_chmask &= EnableMask;
                 ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, mode, pair_chmask);
 			}
 		}
 	}
 	else {
-		for (i = 0; i < WDcfg->Nch; i++) {
-			if (WDcfg->EnableMask & (1 << i))
-                ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, WDcfg->ChannelTriggerMode[i], (1 << i));
+        for (i = 0; i < Nch; i++) {
+            if (EnableMask & (1 << i))
+                ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, ChannelTriggerMode[i], (1 << i));
 		}
 	}
 	if (ret)
         qDebug() << "Error resetting self trigger mode after DAC calibration\n";
 
-	Save_DAC_Calibration_To_Flash(handle, *WDcfg, BoardInfo);
+    Save_DAC_Calibration_To_Flash(handle, BoardInfo);
 
 QuitProgram:
 	if (ErrCode) {
@@ -957,28 +957,28 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-int N6740::Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+int N6740::Set_calibrated_DCO(int handle, int ch, CAEN_DGTZ_BoardInfo_t BoardInfo) {
 	int ret = CAEN_DGTZ_Success;
-	if (WDcfg->Version_used[ch] == 0) //old DC_OFFSET config, skip calibration
+    if (Version_used[ch] == 0) //old DC_OFFSET config, skip calibration
 		return ret;
-	if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive) {
-		WDcfg->DCoffset[ch] = (uint32_t)((float)(fabs((((float)dc_file[ch] - WDcfg->DAC_Calib.offset[ch]) / WDcfg->DAC_Calib.cal[ch]) - 100.))*(655.35));
-		if (WDcfg->DCoffset[ch] > 65535) WDcfg->DCoffset[ch] = 65535;
-		if (WDcfg->DCoffset[ch] < 0) WDcfg->DCoffset[ch] = 0;
+    if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive) {
+        DCoffset[ch] = (uint32_t)((float)(fabs((((float)dc_file[ch] - DAC_Calib.offset[ch]) / DAC_Calib.cal[ch]) - 100.))*(655.35));
+        if (DCoffset[ch] > 65535) DCoffset[ch] = 65535;
+        if (DCoffset[ch] < 0) DCoffset[ch] = 0;
 	}
-	else if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative) {
-		WDcfg->DCoffset[ch] = (uint32_t)((float)(fabs(((fabs(dc_file[ch] - 100.) - WDcfg->DAC_Calib.offset[ch]) / WDcfg->DAC_Calib.cal[ch]) - 100.))*(655.35));
-		if (WDcfg->DCoffset[ch] < 0) WDcfg->DCoffset[ch] = 0;
-		if (WDcfg->DCoffset[ch] > 65535) WDcfg->DCoffset[ch] = 65535;
+    else if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative) {
+        DCoffset[ch] = (uint32_t)((float)(fabs(((fabs(dc_file[ch] - 100.) - DAC_Calib.offset[ch]) / DAC_Calib.cal[ch]) - 100.))*(655.35));
+        if (DCoffset[ch] < 0) DCoffset[ch] = 0;
+        if (DCoffset[ch] > 65535) DCoffset[ch] = 65535;
 	}
 
 	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) {
-		ret = CAEN_DGTZ_SetGroupDCOffset(handle, (uint32_t)ch, WDcfg->DCoffset[ch]);
+        ret = CAEN_DGTZ_SetGroupDCOffset(handle, (uint32_t)ch, DCoffset[ch]);
 		if (ret)
             qDebug() << "Error setting group " << ch << " offset\n";
 	}
 	else {
-		ret = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)ch, WDcfg->DCoffset[ch]);
+        ret = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)ch, DCoffset[ch]);
 		if (ret)
             qDebug() << "Error setting channel " << ch << " offset\n";
 	}
@@ -987,214 +987,6 @@ int N6740::Set_calibrated_DCO(int handle, int ch, WaveDumpConfig_t *WDcfg, CAEN_
 }
 
 
-/*! \fn      void CheckKeyboardCommands(WaveDumpRun_t *WDrun)
-*   \brief   check if there is a key pressed and execute the relevant command
-*
-*   \param   WDrun:   Pointer to the WaveDumpRun_t data structure
-*   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
-*   \param   BoardInfo: structure with the board info
-*/
-void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
-{
-    int c = 0;
-	uint8_t percent;
-    if(!kbhit())
-        return;
-
-    c = getch();
-    if ((c < '9') && (c >= '0')) {
-        int ch = c-'0';
-        if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE){
-            WDrun->ChannelPlotMask ^= (1 << ch);
-            if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) && (ch == 8))
-                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex * 8 << " belongs to a different group\n";
-			else
-			if (WDrun->ChannelPlotMask & (1 << ch))
-                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex*8 << " enabled for plotting\n";
-            else
-                qDebug() << "Channel " << ch + WDrun->GroupPlotIndex*8 << " disabled for plotting\n";
-        } 
-		else if((BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) && (WDcfg->Nch>8)) {
-		ch = ch + 8 * WDrun->GroupPlotSwitch;
-		if(ch!= 8 && WDcfg->EnableMask & (1 << ch)){		
-		WDrun->ChannelPlotMask ^= (1 << ch);
-		if (WDrun->ChannelPlotMask & (1 << ch))
-            qDebug() << "Channel " << ch << " enabled for plotting\n";
-		else
-            qDebug() << "Channel " << ch << " disabled for plotting\n";
-		}
-        else
-            qDebug() << "Channel "<< ch << " not enabled for acquisition\n";
-		}			
-		else {
-            WDrun->ChannelPlotMask ^= (1 << ch);
-            if (WDrun->ChannelPlotMask & (1 << ch))
-                qDebug() << "Channel %d enabled for plotting\n" << ch;
-            else
-                qDebug() << "Channel %d disabled for plotting\n" << ch;
-        }
-    } else {
-        switch(c) {
-        case 'g' :
-			//for boards with >8 channels
-			if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) && (WDcfg->Nch > 8))
-			{
-				if (WDrun->GroupPlotSwitch == 0) {
-					WDrun->GroupPlotSwitch = 1;
-                    qDebug() << "Channel group set to %d: use numbers 0-7 for channels 8-15\n" << WDrun->GroupPlotSwitch;
-				}
-				else if(WDrun->GroupPlotSwitch == 1)	{
-					WDrun->GroupPlotSwitch = 0;
-                    qDebug() << "Channel group set to %d: use numbers 0-7 for channels 0-7\n" << WDrun->GroupPlotSwitch;
-				}
-			}
-			else
-            // Update the group plot index
-            if ((WDcfg->EnableMask) && (WDcfg->Nch>8))
-                //GoToNextEnabledGroup(WDrun, WDcfg);
-            break;
-        case 'q' :
-            WDrun->Quit = 1;
-            break;
-        case 'R' :
-            WDrun->Restart = 1;
-            break;
-        case 't' :
-            if (!WDrun->ContinuousTrigger) {
-                CAEN_DGTZ_SendSWtrigger(handle);
-                qDebug() << "Single Software Trigger issued\n";
-            }
-            break;
-        case 'T' :
-            WDrun->ContinuousTrigger ^= 1;
-            if (WDrun->ContinuousTrigger)
-                qDebug() << "Continuous trigger is enabled\n";
-            else
-                qDebug() << "Continuous trigger is disabled\n";
-            break;
-        case 'P' :
-            if (WDrun->ChannelPlotMask == 0)
-                qDebug() << "No channel enabled for plotting\n";
-            else
-                WDrun->ContinuousPlot ^= 1;
-            break;
-        case 'p' :
-            if (WDrun->ChannelPlotMask == 0)
-                qDebug() << "No channel enabled for plotting\n";
-            else
-                WDrun->SinglePlot = 1;
-            break;
-        case 'f' :
-            WDrun->PlotType = (WDrun->PlotType == PLOT_FFT) ? PLOT_WAVEFORMS : PLOT_FFT;
-            WDrun->SetPlotOptions = 1;
-            break;
-        case 'h' :
-            WDrun->PlotType = (WDrun->PlotType == PLOT_HISTOGRAM) ? PLOT_WAVEFORMS : PLOT_HISTOGRAM;
-            WDrun->RunHisto = (WDrun->PlotType == PLOT_HISTOGRAM);
-            WDrun->SetPlotOptions = 1;
-            break;
-        case 'w' :
-            if (!WDrun->ContinuousWrite)
-                WDrun->SingleWrite = 1;
-            break;
-        case 'W' :
-            WDrun->ContinuousWrite ^= 1;
-            if (WDrun->ContinuousWrite)
-                qDebug() << "Continuous writing is enabled\n";
-            else
-                qDebug() << "Continuous writing is disabled\n";
-            break;
-        case 's' :
-            if (WDrun->AcqRun == 0) {
-
-                Set_relative_Threshold(handle, WDcfg, BoardInfo);
-
-				if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE)
-					WDrun->GroupPlotSwitch = 0;
-				
-                qDebug() << "Acquisition started\n";
-
-                CAEN_DGTZ_SWStartAcquisition(handle);
-
-                WDrun->AcqRun = 1;
-
-            } else {
-                qDebug() << "Acquisition stopped\n";
-                CAEN_DGTZ_SWStopAcquisition(handle);
-                WDrun->AcqRun = 0;
-				//WDrun->Restart = 1;
-            }
-            break;
-        case 'm' :
-            qDebug() << "Board Family doesn't support ADC Temperature Monitor.\n";
-            break;
-        case 'c' :
-            //calibrate(handle, WDrun, BoardInfo);
-            break;
-		case 'D':
-			if (WDrun->AcqRun == 0) {
-                qDebug() << "Disconnect input signal from all channels and press any key to start.\n";
-				getch();
-				if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)//XX740 specific
-					Calibrate_XX740_DC_Offset(handle, WDcfg, BoardInfo);
-                else
-					Calibrate_DC_Offset(handle, WDcfg, BoardInfo);
-
-				int i = 0;
-				CAEN_DGTZ_ErrorCode err;
-				//set new dco values using calibration data
-				for (i = 0; i < BoardInfo.Channels; i++) {
-					if (WDcfg->EnableMask & (1 << i)) {
-						if(WDcfg->Version_used[i] == 1)
-							Set_calibrated_DCO(handle, i, WDcfg, BoardInfo);
-						else {
-							err = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)i, WDcfg->DCoffset[i]);
-							if (err)
-                                qDebug() << "Error setting channel %d offset\n" << i;
-						}
-					}
-				}
-#ifdef _WIN32
-				Sleep(200);
-#else
-				usleep(200000);
-#endif
-                qDebug() << "DAC calibration ready!!\n";
-			}
-			else {
-                qDebug() << "Acquisition is running. Stop acquisition to start DAC calibration.\n";
-			}
-			break;
-        case ' ' :
-            qDebug() << "\n                            Bindkey help                                \n";
-            qDebug() << "--------------------------------------------------------------------------\n";
-            qDebug() << "  [q]   Quit\n";
-            qDebug() << "  [R]   Reload configuration file and restart\n";
-            qDebug() << "  [s]   Start/Stop acquisition\n";
-            qDebug() << "  [t]   Send a software trigger (single shot)\n";
-            qDebug() << "  [T]   Enable/Disable continuous software trigger\n";
-            qDebug() << "  [w]   Write one event to output file\n";
-            qDebug() << "  [W]   Enable/Disable continuous writing to output file\n";
-            qDebug() << "  [p]   Plot one event\n";
-            qDebug() << "  [P]   Enable/Disable continuous plot\n";
-            qDebug() << "  [f]   Toggle between FFT and Waveform plot\n";
-            qDebug() << "  [h]   Toggle between Histogram and Waveform plot\n";
-            qDebug() << "  [g]   Change the index of the group to plot (XX740 family)\n";
-            qDebug() << "  [m]   Single ADC temperature monitor (XX751/30/25 only)\n";
-            qDebug() << "  [c]   ADC Calibration (XX751/30/25 only)\n";
-            qDebug() << "  [D]   DAC offset calibration\n";
-            qDebug() << " [0-7]  Enable/Disable one channel on the plot\n";
-            qDebug() << "        For x740 family this is the plotted group's relative channel index\n";
-            qDebug() << "[SPACE] This help\n";
-            qDebug() << "--------------------------------------------------------------------------\n";
-            qDebug() << "Press a key to continue\n";
-            //getch();
-            break;
-        default :   break;
-        }
-    }
-}
-
 /*! \brief   Write the event data into the output files
 *
 *   \param   WDrun Pointer to the WaveDumpRun data structure
@@ -1202,86 +994,86 @@ void N6740::CheckKeyboardCommands(int handle, WaveDumpRun_t *WDrun, WaveDumpConf
 *   \param   EventInfo Pointer to the EventInfo data structure
 *   \param   Event Pointer to the Event to write
 */
-int N6740::WriteOutputFiles(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
+int N6740::WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
 {
     int ch, j, ns;
     CAEN_DGTZ_UINT16_EVENT_t  *Event16 = NULL;
     CAEN_DGTZ_UINT8_EVENT_t   *Event8 = NULL;
 
-    if (WDcfg->Nbit == 8)
+    if (Nbit == 8)
         Event8 = (CAEN_DGTZ_UINT8_EVENT_t *)Event;
     else
         Event16 = (CAEN_DGTZ_UINT16_EVENT_t *)Event;
 
-    for (ch = 0; ch < WDcfg->Nch; ch++) {
-        int Size = (WDcfg->Nbit == 8) ? Event8->ChSize[ch] : Event16->ChSize[ch];
+    for (ch = 0; ch < Nch; ch++) {
+        int Size = (Nbit == 8) ? Event8->ChSize[ch] : Event16->ChSize[ch];
         if (Size <= 0) {
             continue;
         }
 
         // Check the file format type
-        if( WDcfg->OutFileFlags& OFF_BINARY) {
+        if( OutFileFlags& OFF_BINARY) {
             // Binary file format
             uint32_t BinHeader[6];
-            BinHeader[0] = (WDcfg->Nbit == 8) ? Size + 6*sizeof(*BinHeader) : Size*2 + 6*sizeof(*BinHeader);
+            BinHeader[0] = (Nbit == 8) ? Size + 6*sizeof(*BinHeader) : Size*2 + 6*sizeof(*BinHeader);
             BinHeader[1] = EventInfo->BoardId;
             BinHeader[2] = EventInfo->Pattern;
             BinHeader[3] = ch;
             BinHeader[4] = EventInfo->EventCounter;
             BinHeader[5] = EventInfo->TriggerTimeTag;
-            if (!WDrun->fout[ch]) {
+            if (!fout[ch]) {
                 char fname[100];
                 sprintf(fname, "wave%d.dat", ch);
-                if ((WDrun->fout[ch] = fopen(fname, "wb")) == NULL)
+                if ((fout[ch] = fopen(fname, "wb")) == NULL)
                     return -1;
             }
-            if( WDcfg->OutFileFlags & OFF_HEADER) {
+            if( OutFileFlags & OFF_HEADER) {
                 // Write the Channel Header
-                if(fwrite(BinHeader, sizeof(*BinHeader), 6, WDrun->fout[ch]) != 6) {
+                if(fwrite(BinHeader, sizeof(*BinHeader), 6, fout[ch]) != 6) {
                     // error writing to file
-                    fclose(WDrun->fout[ch]);
-                    WDrun->fout[ch]= NULL;
+                    fclose(fout[ch]);
+                    fout[ch]= NULL;
                     return -1;
                 }
             }
-            if (WDcfg->Nbit == 8)
-                ns = (int)fwrite(Event8->DataChannel[ch], 1, Size, WDrun->fout[ch]);
+            if (Nbit == 8)
+                ns = (int)fwrite(Event8->DataChannel[ch], 1, Size, fout[ch]);
             else
-                ns = (int)fwrite(Event16->DataChannel[ch] , 1 , Size*2, WDrun->fout[ch]) / 2;
+                ns = (int)fwrite(Event16->DataChannel[ch] , 1 , Size*2, fout[ch]) / 2;
             if (ns != Size) {
                 // error writing to file
-                fclose(WDrun->fout[ch]);
-                WDrun->fout[ch]= NULL;
+                fclose(fout[ch]);
+                fout[ch]= NULL;
                 return -1;
             }
         } else {
             // Ascii file format
-            if (!WDrun->fout[ch]) {
+            if (!fout[ch]) {
                 char fname[100];
                 sprintf(fname, "wave%d.txt", ch);
-                if ((WDrun->fout[ch] = fopen(fname, "w")) == NULL)
+                if ((fout[ch] = fopen(fname, "w")) == NULL)
                     return -1;
             }
-            if( WDcfg->OutFileFlags & OFF_HEADER) {
+            if( OutFileFlags & OFF_HEADER) {
                 // Write the Channel Header
-                fprintf(WDrun->fout[ch], "Record Length: %d\n", Size);
-                fprintf(WDrun->fout[ch], "BoardID: %2d\n", EventInfo->BoardId);
-                fprintf(WDrun->fout[ch], "Channel: %d\n", ch);
-                fprintf(WDrun->fout[ch], "Event Number: %d\n", EventInfo->EventCounter);
-                fprintf(WDrun->fout[ch], "Pattern: 0x%04X\n", EventInfo->Pattern & 0xFFFF);
-                fprintf(WDrun->fout[ch], "Trigger Time Stamp: %u\n", EventInfo->TriggerTimeTag);
-                fprintf(WDrun->fout[ch], "DC offset (DAC): 0x%04X\n", WDcfg->DCoffset[ch] & 0xFFFF);
+                fprintf(fout[ch], "Record Length: %d\n", Size);
+                fprintf(fout[ch], "BoardID: %2d\n", EventInfo->BoardId);
+                fprintf(fout[ch], "Channel: %d\n", ch);
+                fprintf(fout[ch], "Event Number: %d\n", EventInfo->EventCounter);
+                fprintf(fout[ch], "Pattern: 0x%04X\n", EventInfo->Pattern & 0xFFFF);
+                fprintf(fout[ch], "Trigger Time Stamp: %u\n", EventInfo->TriggerTimeTag);
+                fprintf(fout[ch], "DC offset (DAC): 0x%04X\n", DCoffset[ch] & 0xFFFF);
             }
             for(j=0; j<Size; j++) {
-                if (WDcfg->Nbit == 8)
-                    fprintf(WDrun->fout[ch], "%d\n", Event8->DataChannel[ch][j]);
+                if (Nbit == 8)
+                    fprintf(fout[ch], "%d\n", Event8->DataChannel[ch][j]);
                 else
-                    fprintf(WDrun->fout[ch], "%d\n", Event16->DataChannel[ch][j]);
+                    fprintf(fout[ch], "%d\n", Event16->DataChannel[ch][j]);
             }
         }
-        if (WDrun->SingleWrite) {
-            fclose(WDrun->fout[ch]);
-            WDrun->fout[ch]= NULL;
+        if (true) {           // WDrun->SingleWrite
+            fclose(fout[ch]);
+            fout[ch]= NULL;
         }
     }
     return 0;
@@ -1293,8 +1085,6 @@ int N6740::WriteOutputFiles(WaveDumpConfig_t *WDcfg, WaveDumpRun_t *WDrun, CAEN_
 /* ########################################################################### */
 int N6740::oldMain(int argc, char *argv[])
 {
-    WaveDumpConfig_t   WDcfg;
-    WaveDumpRun_t      WDrun;
     //CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
     int ret = 0;
     int  handle = -1;
@@ -1320,8 +1110,6 @@ int N6740::oldMain(int argc, char *argv[])
 	/* *************************************************************************************** */
 	/* Open and parse default configuration file                                                       */
 	/* *************************************************************************************** */
-	memset(&WDrun, 0, sizeof(WDrun));
-	memset(&WDcfg, 0, sizeof(WDcfg));
 
 	if (argc > 1)//user entered custom filename
 		strcpy(ConfigFileName, argv[1]);
@@ -1334,15 +1122,15 @@ int N6740::oldMain(int argc, char *argv[])
 		ErrCode = ERR_CONF_FILE_NOT_FOUND;
 		goto QuitProgram;
 	}
-	ParseConfigFile(f_ini, &WDcfg);
+    ParseConfigFile(f_ini);
 	fclose(f_ini);
 
     /* *************************************************************************************** */
     /* Open the digitizer and read the board information                                       */
     /* *************************************************************************************** */
-    isVMEDevice = WDcfg.BaseAddress ? 1 : 0;
+    isVMEDevice = BaseAddress ? 1 : 0;
 
-    ret = CAEN_DGTZ_OpenDigitizer(int_to_ConnectionType(WDcfg.LinkType), WDcfg.LinkNum, WDcfg.ConetNode, WDcfg.BaseAddress, &handle);
+    ret = CAEN_DGTZ_OpenDigitizer(int_to_ConnectionType(LinkType), LinkNum, ConetNode, BaseAddress, &handle);
     if (ret) {
         ErrCode = ERR_DGZ_OPEN;
         goto QuitProgram;
@@ -1383,73 +1171,46 @@ int N6740::oldMain(int argc, char *argv[])
 		}
 
 		if (use_specific_file) {
-			memset(&WDrun, 0, sizeof(WDrun));
-			memset(&WDcfg, 0, sizeof(WDcfg));
 
 			f_ini = fopen(ConfigFileName, "r");
 			if (f_ini == NULL) {
 				ErrCode = ERR_CONF_FILE_NOT_FOUND;
 				goto QuitProgram;
 			}
-			ParseConfigFile(f_ini, &WDcfg);
+            ParseConfigFile(f_ini);
 			fclose(f_ini);
 		}
 	}
 
-    // Get Number of Channels, Number of bits, Number of Groups of the board */
-    ret = GetMoreBoardInfo(handle, BoardInfo, &WDcfg);
-    if (ret) {
-        ErrCode = ERR_INVALID_BOARD_TYPE;
-        goto QuitProgram;
-    }
-
 	//set default DAC calibration coefficients
 	for (i = 0; i < MAX_SET; i++) {
-		WDcfg.DAC_Calib.cal[i] = 1;
-		WDcfg.DAC_Calib.offset[i] = 0;
+        DAC_Calib.cal[i] = 1;
+        DAC_Calib.offset[i] = 0;
 	}
 	//load DAC calibration data (if present in flash)
-    Load_DAC_Calibration_From_Flash(handle, &WDcfg, BoardInfo);
+    Load_DAC_Calibration_From_Flash(handle, BoardInfo);
 
     // Perform calibration (if needed).
-    //if (WDcfg.StartupCalibration)
+    //if (StartupCalibration)
         //calibrate(handle, &WDrun, BoardInfo);
 
 Restart:
     // mask the channels not available for this model
     if (BoardInfo.FamilyCode != CAEN_DGTZ_XX740_FAMILY_CODE){
-        WDcfg.EnableMask &= (1<<WDcfg.Nch)-1;
+        EnableMask &= (1<<Nch)-1;
     } else {
-        WDcfg.EnableMask &= (1<<(WDcfg.Nch/8))-1;
+        EnableMask &= (1<<(Nch/8))-1;
     }
-    if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE) && WDcfg.DesMode) {
-        WDcfg.EnableMask &= 0xAA;
-    }
-    if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX731_FAMILY_CODE) && WDcfg.DesMode) {
-        WDcfg.EnableMask &= 0x55;
-    }
-    // Set plot mask
-    if (BoardInfo.FamilyCode != CAEN_DGTZ_XX740_FAMILY_CODE){
-        WDrun.ChannelPlotMask = WDcfg.EnableMask;
-    } else {
-        WDrun.ChannelPlotMask = (WDcfg.FastTriggerEnabled == 0) ? 0xFF: 0x1FF;
-    }
-	if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE)) {
-		WDrun.GroupPlotSwitch = 0;
-	}
     /* *************************************************************************************** */
     /* program the digitizer                                                                   */
     /* *************************************************************************************** */
-    ret = ProgramDigitizer(handle, WDcfg, BoardInfo);
+    ret = ProgramDigitizer(handle, BoardInfo);
     if (ret) {
         ErrCode = ERR_DGZ_PROGRAM;
         goto QuitProgram;
     }
 
     // Select the next enabled group for plotting
-    if ((WDcfg.EnableMask) && (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE))
-        if( ((WDcfg.EnableMask>>WDrun.GroupPlotIndex)&0x1)==0 )
-            //GoToNextEnabledGroup(&WDrun, &WDcfg);
 
     // Read again the board infos, just in case some of them were changed by the programming
     // (like, for example, the TSample and the number of channels if DES mode is changed)
@@ -1459,16 +1220,11 @@ Restart:
             ErrCode = ERR_BOARD_INFO_READ;
             goto QuitProgram;
         }
-        ret = GetMoreBoardInfo(handle,BoardInfo, &WDcfg);
-        if (ret) {
-            ErrCode = ERR_INVALID_BOARD_TYPE;
-            goto QuitProgram;
-        }
 
     }
 
     // Allocate memory for the event data and readout buffer
-    if(WDcfg.Nbit == 8)
+    if(Nbit == 8)
         ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event8);
     else {
         ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
@@ -1507,7 +1263,7 @@ Restart:
         if (WDrun.Restart) {
             CAEN_DGTZ_SWStopAcquisition(handle);
             CAEN_DGTZ_FreeReadoutBuffer(&buffer);
-            if(WDcfg.Nbit == 8)
+            if(Nbit == 8)
                 CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
             else
                 CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
@@ -1525,7 +1281,7 @@ Restart:
         }
 
         /* Wait for interrupt (if enabled) */
-        if (WDcfg.InterruptNumEvents > 0) {
+        if (InterruptNumEvents > 0) {
             int32_t boardId;
             int VMEHandle = -1;
             int InterruptMask = (1 << VME_INTERRUPT_LEVEL);
@@ -1534,7 +1290,7 @@ Restart:
             NumEvents = 0;
             // Interrupt handling
             if (isVMEDevice) {
-                ret = CAEN_DGTZ_VMEIRQWait ((CAEN_DGTZ_ConnectionType)WDcfg.LinkType, WDcfg.LinkNum, WDcfg.ConetNode, (uint8_t)InterruptMask, INTERRUPT_TIMEOUT, &VMEHandle);
+                ret = CAEN_DGTZ_VMEIRQWait ((CAEN_DGTZ_ConnectionType)LinkType, LinkNum, ConetNode, (uint8_t)InterruptMask, INTERRUPT_TIMEOUT, &VMEHandle);
             }
             else
                 ret = CAEN_DGTZ_IRQWait(handle, INTERRUPT_TIMEOUT);
@@ -1616,7 +1372,7 @@ InterruptTimeout:
                 goto QuitProgram;
             }
             /* decode the event */
-            if (WDcfg.Nbit == 8) 
+            if (Nbit == 8)
                 ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event8);
             else
                 ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
@@ -1627,18 +1383,18 @@ InterruptTimeout:
 
                 /* Update Histograms */
                 if (WDrun.RunHisto) {
-                    for(ch=0; ch<WDcfg.Nch; ch++) {
+                    for(ch=0; ch<Nch; ch++) {
                         int chmask = (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)? (ch/8) : ch;
                         if (!(EventInfo.ChannelMask & (1<<chmask)))
                             continue;
                         if (WDrun.Histogram[ch] == NULL) {
-                            if ((WDrun.Histogram[ch] = (uint32_t *)malloc((uint64_t)(1<<WDcfg.Nbit) * sizeof(uint32_t))) == NULL) {
+                            if ((WDrun.Histogram[ch] = (uint32_t *)malloc((uint64_t)(1<<Nbit) * sizeof(uint32_t))) == NULL) {
                                 ErrCode = ERR_HISTO_MALLOC;
                                 goto QuitProgram;
                             }
-                            memset(WDrun.Histogram[ch], 0, (uint64_t)(1<<WDcfg.Nbit) * sizeof(uint32_t));
+                            memset(WDrun.Histogram[ch], 0, (uint64_t)(1<<Nbit) * sizeof(uint32_t));
                         }
-                        if (WDcfg.Nbit == 8)
+                        if (Nbit == 8)
                             for(i=0; i<(int)Event8->ChSize[ch]; i++)
                                 WDrun.Histogram[ch][Event8->DataChannel[ch][i]]++;
                         else {
@@ -1651,7 +1407,7 @@ InterruptTimeout:
                 /* Write Event data to file */
                 if (WDrun.ContinuousWrite || WDrun.SingleWrite) {
                     // Note: use a thread here to allow parallel readout and file writing
-                    if (WDcfg.Nbit == 8) {
+                    if (Nbit == 8) {
                         ret = WriteOutputFiles(&WDcfg, &WDrun, &EventInfo, Event8);
                     }
                     else {
@@ -1683,7 +1439,7 @@ QuitProgram:
     CAEN_DGTZ_SWStopAcquisition(handle);
 
     /* close the output files and free histograms*/
-    for (ch = 0; ch < WDcfg.Nch; ch++) {
+    for (ch = 0; ch < Nch; ch++) {
         if (WDrun.fout[ch])
             fclose(WDrun.fout[ch]);
         if (WDrun.Histogram[ch])
@@ -1718,59 +1474,59 @@ N6740::N6740(){
 
 }
 
-void N6740::SetDefaultConfiguration(WaveDumpConfig_t *WDcfg) {
+void N6740::SetDefaultConfiguration() {
     int i, j;
 
-    WDcfg->RecordLength = (1024*16);
-    WDcfg->PostTrigger = 50;
-    WDcfg->NumEvents = 1023;
-    WDcfg->EnableMask = 0xFFFF;
-    WDcfg->GWn = 0;
-    WDcfg->ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
-    WDcfg->InterruptNumEvents = 0;
-    WDcfg->TestPattern = 0;
-    WDcfg->DecimationFactor = 1;
-    WDcfg->DesMode = CAEN_DGTZ_DISABLE;
-    WDcfg->FastTriggerMode = CAEN_DGTZ_TRGMODE_DISABLED;
-    WDcfg->FastTriggerEnabled = 0;
-    WDcfg->FPIOtype = CAEN_DGTZ_IOLevel_NIM;
+    RecordLength = (1024*16);
+    PostTrigger = 50;
+    NumEvents = 1023;
+    EnableMask = 0xFFFF;
+    GWn = 0;
+    ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
+    InterruptNumEvents = 0;
+    TestPattern = 0;
+    DecimationFactor = 1;
+    DesMode = CAEN_DGTZ_DISABLE;
+    FastTriggerMode = CAEN_DGTZ_TRGMODE_DISABLED;
+    FastTriggerEnabled = 0;
+    FPIOtype = CAEN_DGTZ_IOLevel_NIM;
 
-    strcpy(WDcfg->GnuPlotPath, GNUPLOT_DEFAULT_PATH);
+    strcpy(GnuPlotPath, GNUPLOT_DEFAULT_PATH);
     for(i=0; i<MAX_SET; i++) {
-        WDcfg->PulsePolarity[i] = CAEN_DGTZ_PulsePolarityPositive;
-        WDcfg->Version_used[i] = 0;
-        WDcfg->DCoffset[i] = 0;
-        WDcfg->Threshold[i] = 0;
-        WDcfg->ChannelTriggerMode[i] = CAEN_DGTZ_TRGMODE_DISABLED;
-        WDcfg->GroupTrgEnableMask[i] = 0;
-        for(j=0; j<MAX_SET; j++) WDcfg->DCoffsetGrpCh[i][j] = -1;
-        WDcfg->FTThreshold[i] = 0;
-        WDcfg->FTDCoffset[i] =0;
+        PulsePolarity[i] = CAEN_DGTZ_PulsePolarityPositive;
+        Version_used[i] = 0;
+        DCoffset[i] = 0;
+        Threshold[i] = 0;
+        ChannelTriggerMode[i] = CAEN_DGTZ_TRGMODE_DISABLED;
+        GroupTrgEnableMask[i] = 0;
+        for(j=0; j<MAX_SET; j++) DCoffsetGrpCh[i][j] = -1;
+        FTThreshold[i] = 0;
+        FTDCoffset[i] =0;
     }
-    WDcfg->useCorrections = -1;
-    WDcfg->UseManualTables = -1;
+    useCorrections = -1;
+    UseManualTables = -1;
     for(i=0; i<MAX_X742_GROUP_SIZE; i++)
-        sprintf(WDcfg->TablesFilenames[i], "Tables_gr%d", i);
-    WDcfg->DRS4Frequency = CAEN_DGTZ_DRS4_5GHz;
-    WDcfg->StartupCalibration = 1;
+        sprintf(TablesFilenames[i], "Tables_gr%d", i);
+    DRS4Frequency = CAEN_DGTZ_DRS4_5GHz;
+    StartupCalibration = 1;
 }
 
-int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
+int N6740::ParseConfigFile(FILE *f_ini)
 {
     char str[1000], str1[1000], *pread;
     int i, ch=-1, val, Off=0, tr = -1;
     int ret = 0;
 
     // Save previous values (for compare)
-    int PrevDesMode = WDcfg->DesMode;
-    int PrevUseCorrections = WDcfg->useCorrections;
-    int PrevUseManualTables = WDcfg->UseManualTables;
-    size_t TabBuf[sizeof(WDcfg->TablesFilenames)];
+    int PrevDesMode = DesMode;
+    int PrevUseCorrections = useCorrections;
+    int PrevUseManualTables = UseManualTables;
+    size_t TabBuf[sizeof(TablesFilenames)];
     // Copy the filenames to watch for changes
-    memcpy(TabBuf, WDcfg->TablesFilenames, sizeof(WDcfg->TablesFilenames));
+    memcpy(TabBuf, TablesFilenames, sizeof(TablesFilenames));
 
     /* Default settings */
-    SetDefaultConfiguration(WDcfg);
+    SetDefaultConfiguration();
 
     /* read config file and assign parameters */
     while(!feof(f_ini)) {
@@ -1824,44 +1580,44 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "OPEN")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "USB")==0)
-                WDcfg->LinkType = CAEN_DGTZ_USB;
+                LinkType = CAEN_DGTZ_USB;
             else if (strcmp(str1, "PCI")==0)
-                WDcfg->LinkType = CAEN_DGTZ_OpticalLink;
+                LinkType = CAEN_DGTZ_OpticalLink;
             else {
                 //printf("%s %s: Invalid connection type\n", str, str1);
                 return -1;
             }
-            read = fscanf(f_ini, "%d", &WDcfg->LinkNum);
-            if (WDcfg->LinkType == CAEN_DGTZ_USB)
-                WDcfg->ConetNode = 0;
+            read = fscanf(f_ini, "%d", &LinkNum);
+            if (LinkType == CAEN_DGTZ_USB)
+                ConetNode = 0;
             else
-                read = fscanf(f_ini, "%d", &WDcfg->ConetNode);
-            read = fscanf(f_ini, "%x", &WDcfg->BaseAddress);
+                read = fscanf(f_ini, "%d", &ConetNode);
+            read = fscanf(f_ini, "%x", &BaseAddress);
             continue;
         }
 
         // Generic VME Write (address offset + data + mask, each exadecimal)
-        if ((strstr(str, "WRITE_REGISTER")!=NULL) && (WDcfg->GWn < MAX_GW)) {
-            read = fscanf(f_ini, "%x", (int *)&WDcfg->GWaddr[WDcfg->GWn]);
-            read = fscanf(f_ini, "%x", (int *)&WDcfg->GWdata[WDcfg->GWn]);
-            read = fscanf(f_ini, "%x", (int *)&WDcfg->GWmask[WDcfg->GWn]);
-            WDcfg->GWn++;
+        if ((strstr(str, "WRITE_REGISTER")!=NULL) && (GWn < MAX_GW)) {
+            read = fscanf(f_ini, "%x", (int *)&GWaddr[GWn]);
+            read = fscanf(f_ini, "%x", (int *)&GWdata[GWn]);
+            read = fscanf(f_ini, "%x", (int *)&GWmask[GWn]);
+            GWn++;
             continue;
         }
 
         // Acquisition Record Length (number of samples)
         if (strstr(str, "RECORD_LENGTH")!=NULL) {
-            read = fscanf(f_ini, "%d", &WDcfg->RecordLength);
+            read = fscanf(f_ini, "%d", &RecordLength);
             continue;
         }
 
         // Acquisition Frequency (X742 only)
         if (strstr(str, "DRS4_FREQUENCY")!=NULL) {
-            int PrevDRS4Freq = WDcfg->DRS4Frequency;
+            int PrevDRS4Freq = DRS4Frequency;
             int freq;
             read = fscanf(f_ini, "%d", &freq);
-            WDcfg->DRS4Frequency = (CAEN_DGTZ_DRS4Frequency_t)freq;
-            if(PrevDRS4Freq != WDcfg->DRS4Frequency)
+            DRS4Frequency = (CAEN_DGTZ_DRS4Frequency_t)freq;
+            if(PrevDRS4Freq != DRS4Frequency)
                 ret |= (0x1 << CFGRELOAD_CORRTABLES_BIT);
             continue;
         }
@@ -1872,25 +1628,25 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 
             read = fscanf(f_ini, "%s", str1);
             if( strcmp(str1, "AUTO") == 0 )
-                WDcfg->useCorrections = -1;
+                useCorrections = -1;
             else {
                 int gr = 0;
                 char Buf[1000];
                 char *ptr = Buf;
 
-                WDcfg->useCorrections = atoi(str1);
+                useCorrections = atoi(str1);
                 pread = fgets(Buf, 1000, f_ini); // Get the remaining line
-                WDcfg->UseManualTables = -1;
+                UseManualTables = -1;
                 if(sscanf(ptr, "%s", str1) == 0) {
                     //printf("Invalid syntax for parameter %s\n", str);
                     continue;
                 }
                 if(strcmp(str1, "AUTO") != 0) { // The user wants to use custom correction tables
-                    WDcfg->UseManualTables = atoi(ptr); // Save the group mask
+                    UseManualTables = atoi(ptr); // Save the group mask
                     ptr = strstr(ptr, str1);
                     ptr += strlen(str1);
                     while(sscanf(ptr, "%s", str1) == 1 && gr < MAX_X742_GROUP_SIZE) {
-                        while( ((WDcfg->UseManualTables) & (0x1 << gr)) == 0 && gr < MAX_X742_GROUP_SIZE)
+                        while( ((UseManualTables) & (0x1 << gr)) == 0 && gr < MAX_X742_GROUP_SIZE)
                             gr++;
                         if(gr >= MAX_X742_GROUP_SIZE) {
                             //printf("Error parsing values for parameter %s\n", str);
@@ -1898,18 +1654,18 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
                         }
                         ptr = strstr(ptr, str1);
                         ptr += strlen(str1);
-                        strcpy(WDcfg->TablesFilenames[gr], str1);
+                        strcpy(TablesFilenames[gr], str1);
                         gr++;
                     }
                 }
             }
 
             // Check for changes
-            if (PrevUseCorrections != WDcfg->useCorrections)
+            if (PrevUseCorrections != useCorrections)
                 changed = 1;
-            else if (PrevUseManualTables != WDcfg->UseManualTables)
+            else if (PrevUseManualTables != UseManualTables)
                 changed = 1;
-            else if (memcmp(TabBuf, WDcfg->TablesFilenames, sizeof(WDcfg->TablesFilenames)))
+            else if (memcmp(TabBuf, TablesFilenames, sizeof(TablesFilenames)))
                 changed = 1;
             if (changed == 1)
                 ret |= (0x1 << CFGRELOAD_CORRTABLES_BIT);
@@ -1920,7 +1676,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "TEST_PATTERN")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0)
-                WDcfg->TestPattern = 1;
+                TestPattern = 1;
             else if (strcmp(str1, "NO")!=0)
                 //printf("%s: invalid option\n", str);
             continue;
@@ -1928,7 +1684,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 
         // Acquisition Record Length (number of samples)
         if (strstr(str, "DECIMATION_FACTOR")!=NULL) {
-            read = fscanf(f_ini, "%d", (int*)&WDcfg->DecimationFactor);
+            read = fscanf(f_ini, "%d", (int*)&DecimationFactor);
             continue;
         }
 
@@ -1936,7 +1692,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         /*if (strstr(str, "TRIGGER_EDGE")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "FALLING")==0)
-                WDcfg->TriggerEdge = 1;
+                TriggerEdge = 1;
             else if (strcmp(str1, "RISING")!=0)
                 printf("%s: invalid option\n", str);
             continue;
@@ -1946,11 +1702,11 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "EXTERNAL_TRIGGER")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "DISABLED")==0)
-                WDcfg->ExtTriggerMode = CAEN_DGTZ_TRGMODE_DISABLED;
+                ExtTriggerMode = CAEN_DGTZ_TRGMODE_DISABLED;
             else if (strcmp(str1, "ACQUISITION_ONLY")==0)
-                WDcfg->ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
+                ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
             else if (strcmp(str1, "ACQUISITION_AND_TRGOUT")==0)
-                WDcfg->ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT;
+                ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT;
             else
                 //printf("%s: Invalid Parameter\n", str);
             continue;
@@ -1958,19 +1714,19 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 
         // Max. number of events for a block transfer (0 to 1023)
         if (strstr(str, "MAX_NUM_EVENTS_BLT")!=NULL) {
-            read = fscanf(f_ini, "%d", &WDcfg->NumEvents);
+            read = fscanf(f_ini, "%d", &NumEvents);
             continue;
         }
 
         // GNUplot path
         if (strstr(str, "GNUPLOT_PATH")!=NULL) {
-            read = fscanf(f_ini, "%s", WDcfg->GnuPlotPath);
+            read = fscanf(f_ini, "%s", GnuPlotPath);
             continue;
         }
 
         // Post Trigger (percent of the acquisition window)
         if (strstr(str, "POST_TRIGGER")!=NULL) {
-            read = fscanf(f_ini, "%d", &WDcfg->PostTrigger);
+            read = fscanf(f_ini, "%d", &PostTrigger);
             continue;
         }
 
@@ -1978,10 +1734,10 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "ENABLE_DES_MODE")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0)
-                WDcfg->DesMode = CAEN_DGTZ_ENABLE;
+                DesMode = CAEN_DGTZ_ENABLE;
             else if (strcmp(str1, "NO")!=0)
                 //printf("%s: invalid option\n", str);
-            if(PrevDesMode != WDcfg->DesMode)
+            if(PrevDesMode != DesMode)
                 ret |= (0x1 << CFGRELOAD_DESMODE_BIT);
             continue;
         }
@@ -1990,7 +1746,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "OUTPUT_FILE_FORMAT")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "BINARY")==0)
-                WDcfg->OutFileFlags = OFF_BINARY;
+                OutFileFlags = OFF_BINARY;
             else if (strcmp(str1, "ASCII")!=0)
                 //printf("%s: invalid output file format\n", str1);
             continue;
@@ -2000,7 +1756,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "OUTPUT_FILE_HEADER")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0)
-                WDcfg->OutFileFlags = OFF_HEADER;
+                OutFileFlags = OFF_HEADER;
             else if (strcmp(str1, "NO")!=0)
                 //printf("%s: invalid option\n", str);
             continue;
@@ -2008,16 +1764,16 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
 
         // Interrupt settings (request interrupt when there are at least N events to read; 0=disable interrupts (polling mode))
         if (strstr(str, "USE_INTERRUPT")!=NULL) {
-            read = fscanf(f_ini, "%d", &WDcfg->InterruptNumEvents);
+            read = fscanf(f_ini, "%d", &InterruptNumEvents);
             continue;
         }
 
         if (!strcmp(str, "FAST_TRIGGER")) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "DISABLED")==0)
-                WDcfg->FastTriggerMode = CAEN_DGTZ_TRGMODE_DISABLED;
+                FastTriggerMode = CAEN_DGTZ_TRGMODE_DISABLED;
             else if (strcmp(str1, "ACQUISITION_ONLY")==0)
-                WDcfg->FastTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
+                FastTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
             else
                 //printf("%s: Invalid Parameter\n", str);
             continue;
@@ -2026,7 +1782,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "ENABLED_FAST_TRIGGER_DIGITIZING")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0)
-                WDcfg->FastTriggerEnabled= 1;
+                FastTriggerEnabled= 1;
             else if (strcmp(str1, "NO")!=0)
                 //printf("%s: invalid option\n", str);
             continue;
@@ -2043,7 +1799,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
                 //printf("%s: Invalid Parameter\n", str);
 
                 for (i = 0; i<MAX_SET; i++)///polarity setting (old trigger edge)is the same for all channels
-                    WDcfg->PulsePolarity[i] = pp;
+                    PulsePolarity[i] = pp;
 
             continue;
         }
@@ -2055,9 +1811,9 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             int dc;
             read = fscanf(f_ini, "%d", &dc);
             if (tr != -1) {
-                // 				WDcfg->FTDCoffset[tr] = dc;
-                WDcfg->FTDCoffset[tr * 2] = (uint32_t)dc;
-                WDcfg->FTDCoffset[tr * 2 + 1] = (uint32_t)dc;
+                // 				FTDCoffset[tr] = dc;
+                FTDCoffset[tr * 2] = (uint32_t)dc;
+                FTDCoffset[tr * 2 + 1] = (uint32_t)dc;
                 continue;
             }
 
@@ -2065,14 +1821,14 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             if (ch == -1)
                 for (i = 0; i < MAX_SET; i++)
                 {
-                    WDcfg->DCoffset[i] = val;
-                    WDcfg->Version_used[i] = 0;
+                    DCoffset[i] = val;
+                    Version_used[i] = 0;
                     dc_file[i] = dc;
                 }
             else
             {
-                WDcfg->DCoffset[ch] = val;
-                WDcfg->Version_used[ch] = 0;
+                DCoffset[ch] = val;
+                Version_used[ch] = 0;
                 dc_file[ch] = dc;
             }
 
@@ -2086,9 +1842,9 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             int dc;
             read = fscanf(f_ini, "%d", &dc);
             if (tr != -1) {
-                // 				WDcfg->FTDCoffset[tr] = dc;
-                WDcfg->FTDCoffset[tr * 2] = (uint32_t)dc;
-                WDcfg->FTDCoffset[tr * 2 + 1] = (uint32_t)dc;
+                // 				FTDCoffset[tr] = dc;
+                FTDCoffset[tr * 2] = (uint32_t)dc;
+                FTDCoffset[tr * 2 + 1] = (uint32_t)dc;
                 continue;
             }
 
@@ -2096,30 +1852,30 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             {
                 for (i = 0; i < MAX_SET; i++)
                 {
-                    WDcfg->Version_used[i] = 1;
+                    Version_used[i] = 1;
                     dc_file[i] = dc;
-                    if (WDcfg->PulsePolarity[i] == CAEN_DGTZ_PulsePolarityPositive)
-                        WDcfg->DCoffset[i] = (uint32_t)((float)(fabs(dc - 100))*(655.35));
+                    if (PulsePolarity[i] == CAEN_DGTZ_PulsePolarityPositive)
+                        DCoffset[i] = (uint32_t)((float)(fabs(dc - 100))*(655.35));
 
-                    else if (WDcfg->PulsePolarity[i] == CAEN_DGTZ_PulsePolarityNegative)
-                        WDcfg->DCoffset[i] = (uint32_t)((float)(dc)*(655.35));
+                    else if (PulsePolarity[i] == CAEN_DGTZ_PulsePolarityNegative)
+                        DCoffset[i] = (uint32_t)((float)(dc)*(655.35));
                 }
             }
             else
             {
-                WDcfg->Version_used[ch] = 1;
+                Version_used[ch] = 1;
                 dc_file[ch] = dc;
-                if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
+                if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
                 {
-                    WDcfg->DCoffset[ch] = (uint32_t)((float)(fabs(dc - 100))*(655.35));
-                    ////printf("ch %d positive, offset %d\n",ch, WDcfg->DCoffset[ch]);
+                    DCoffset[ch] = (uint32_t)((float)(fabs(dc - 100))*(655.35));
+                    ////printf("ch %d positive, offset %d\n",ch, DCoffset[ch]);
                 }
 
 
-                else if (WDcfg->PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative)
+                else if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityNegative)
                 {
-                    WDcfg->DCoffset[ch] = (uint32_t)((float)(dc)*(655.35));
-                    ////printf("ch %d negative, offset %d\n",ch, WDcfg->DCoffset[ch]);
+                    DCoffset[ch] = (uint32_t)((float)(dc)*(655.35));
+                    ////printf("ch %d negative, offset %d\n",ch, DCoffset[ch]);
                 }
 
 
@@ -2138,7 +1894,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             for(i=0; i<8; i++) //MAX_SET
             {
                 val = (int)((dc[i]+50) * 65535 / 100); ///DC offset (percent of the dynamic range, -50 to 50)
-                WDcfg->DCoffsetGrpCh[ch][i]=val;
+                DCoffsetGrpCh[ch][i]=val;
             }
             continue;
         }
@@ -2147,21 +1903,21 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "TRIGGER_THRESHOLD")!=NULL) {
             read = fscanf(f_ini, "%d", &val);
             if (tr != -1) {
-//				WDcfg->FTThreshold[tr] = val;
-                WDcfg->FTThreshold[tr*2] = val;
-                WDcfg->FTThreshold[tr*2+1] = val;
+//				FTThreshold[tr] = val;
+                FTThreshold[tr*2] = val;
+                FTThreshold[tr*2+1] = val;
 
                 continue;
             }
             if (ch == -1)
                 for (i = 0; i < MAX_SET; i++)
                 {
-                    WDcfg->Threshold[i] = val;
+                    Threshold[i] = val;
                     thr_file[i] = val;
                 }
             else
             {
-                WDcfg->Threshold[ch] = val;
+                Threshold[ch] = val;
                 thr_file[ch] = val;
             }
             continue;
@@ -2172,9 +1928,9 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             read = fscanf(f_ini, "%x", &val);
             if (ch == -1)
                 for(i=0; i<MAX_SET; i++)
-                    WDcfg->GroupTrgEnableMask[i] = val & 0xFF;
+                    GroupTrgEnableMask[i] = val & 0xFF;
             else
-                 WDcfg->GroupTrgEnableMask[ch] = val & 0xFF;
+                 GroupTrgEnableMask[ch] = val & 0xFF;
             continue;
         }
 
@@ -2196,9 +1952,9 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             }
             if (ch == -1)
                 for(i=0; i<MAX_SET; i++)
-                    WDcfg->ChannelTriggerMode[i] = tm;
+                    ChannelTriggerMode[i] = tm;
             else
-                WDcfg->ChannelTriggerMode[ch] = tm;
+                ChannelTriggerMode[ch] = tm;
 
             continue;
         }
@@ -2207,7 +1963,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "FPIO_LEVEL")!=NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "TTL")==0)
-                WDcfg->FPIOtype = CAEN_DGTZ_IOLevel_TTL;
+                FPIOtype = CAEN_DGTZ_IOLevel_TTL;
             else if (strcmp(str1, "NIM")!=0)
                 //printf("%s: invalid option\n", str);
             continue;
@@ -2218,17 +1974,17 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0) {
                 if (ch == -1)
-                    WDcfg->EnableMask = 0xFF;
+                    EnableMask = 0xFF;
                 else
                 {
-                    WDcfg->EnableMask |= (1 << ch);
+                    EnableMask |= (1 << ch);
                 }
                 continue;
             } else if (strcmp(str1, "NO")==0) {
                 if (ch == -1)
-                    WDcfg->EnableMask = 0x00;
+                    EnableMask = 0x00;
                 else
-                    WDcfg->EnableMask &= ~(1 << ch);
+                    EnableMask &= ~(1 << ch);
                 continue;
             } else {
                 //printf("%s: invalid option\n", str);
@@ -2240,9 +1996,9 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
         if (strstr(str, "SKIP_STARTUP_CALIBRATION") != NULL) {
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES") == 0)
-                WDcfg->StartupCalibration = 0;
+                StartupCalibration = 0;
             else
-                WDcfg->StartupCalibration = 1;
+                StartupCalibration = 1;
             continue;
         }
 
@@ -2251,7 +2007,7 @@ int N6740::ParseConfigFile(FILE *f_ini, WaveDumpConfig_t *WDcfg)
     return ret;
 }
 
-void N6740::Load_DAC_Calibration_From_Flash(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+void N6740::Load_DAC_Calibration_From_Flash(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo) {
     FLASH_API_ERROR_CODES err = FLASH_API_SUCCESS;
     uint8_t *buffer;
     int ch = 0;
@@ -2279,8 +2035,8 @@ void N6740::Load_DAC_Calibration_From_Flash(int handle, WaveDumpConfig_t *WDcfg,
     else {
         memcpy(calibration_data, buffer + 1, 2 * MAX_SET * sizeof(float));
         for (ch = 0; ch < (int)BoardInfo.Channels; ch++) {
-            WDcfg->DAC_Calib.cal[ch] = calibration_data[2 * ch];
-            WDcfg->DAC_Calib.offset[ch] = calibration_data[1 + 2 * ch];
+            DAC_Calib.cal[ch] = calibration_data[2 * ch];
+            DAC_Calib.offset[ch] = calibration_data[1 + 2 * ch];
         }
     }
 
@@ -2288,15 +2044,15 @@ void N6740::Load_DAC_Calibration_From_Flash(int handle, WaveDumpConfig_t *WDcfg,
     //printf("\nDAC calibration correctly loaded from board flash.\n");
 }
 
-void N6740::Save_DAC_Calibration_To_Flash(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+void N6740::Save_DAC_Calibration_To_Flash(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo) {
     FLASH_API_ERROR_CODES err = FLASH_API_SUCCESS;
     uint8_t *buffer;
     int ch = 0;
     float calibration_data[2*MAX_SET];
 
     for (ch = 0; ch < (int)BoardInfo.Channels; ch++) {
-        calibration_data[2*ch] = WDcfg.DAC_Calib.cal[ch];
-        calibration_data[1 + 2 * ch] = WDcfg.DAC_Calib.offset[ch];
+        calibration_data[2*ch] = DAC_Calib.cal[ch];
+        calibration_data[1 + 2 * ch] = DAC_Calib.offset[ch];
     }
 
     err = SPIFlash_init(handle);// init flash
