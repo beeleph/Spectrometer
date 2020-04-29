@@ -128,7 +128,7 @@ static long get_time()
 *   \param   mask   :   Bitmask to use for data masking
 *   \return  0 = Success; negative numbers are error codes
 */
-int N6740::WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data, uint32_t mask) {
+int N6740::WriteRegisterBitmask(uint32_t address, uint32_t data, uint32_t mask) {
     int32_t ret = CAEN_DGTZ_Success;
     uint32_t d32 = 0xFFFFFFFF;
 
@@ -151,7 +151,7 @@ int N6740::WriteRegisterBitmask(int32_t handle, uint32_t address, uint32_t data,
 *   \param   WDcfg:   WaveDumpConfig data structure
 *   \return  0 = Success; negative numbers are error codes
 */
-int N6740::ProgramDigitizer(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo)
+int N6740::ProgramDigitizer(CAEN_DGTZ_BoardInfo_t BoardInfo)
 {
     int i, j, ret = 0;
 
@@ -199,7 +199,7 @@ int N6740::ProgramDigitizer(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo)
         for(i=0; i<(Nch/8); i++) {
             if (EnableMask & (1<<i)) {
                 if(Version_used[i] == 1)
-                    ret |= Set_calibrated_DCO(handle, i, BoardInfo);
+                    ret |= Set_calibrated_DCO(i, BoardInfo);
                 else
                     ret |= CAEN_DGTZ_SetGroupDCOffset(handle, i, DCoffset[i]);
                 ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, ChannelTriggerMode[i], (1<<i));
@@ -213,7 +213,7 @@ int N6740::ProgramDigitizer(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo)
         for (i = 0; i < Nch; i++) {
             if (EnableMask & (1<<i)) {
                 if (Version_used[i] == 1)
-                    ret |= Set_calibrated_DCO(handle, i, BoardInfo);
+                    ret |= Set_calibrated_DCO(i, BoardInfo);
 				else
                     ret |= CAEN_DGTZ_SetChannelDCOffset(handle, i, DCoffset[i]);
                 if (BoardInfo.FamilyCode != CAEN_DGTZ_XX730_FAMILY_CODE &&
@@ -256,7 +256,7 @@ int N6740::ProgramDigitizer(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo)
 
     /* execute generic write commands */
     for(i=0; i<GWn; i++)
-        ret |= WriteRegisterBitmask(handle, GWaddr[i], GWdata[i], GWmask[i]);
+        ret |= WriteRegisterBitmask(GWaddr[i], GWdata[i], GWmask[i]);
 
     if (ret)
         qDebug() << "Warning: errors found during the programming of the digitizer.\nSome settings may not be executed\n";
@@ -272,7 +272,7 @@ int N6740::ProgramDigitizer(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo)
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Calibrate_XX740_DC_Offset(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Calibrate_XX740_DC_Offset(CAEN_DGTZ_BoardInfo_t BoardInfo){
 	float cal[MAX_CH];
 	float offset[MAX_CH] = { 0 };
 	int i = 0, acq = 0, k = 0, p=0, g = 0;
@@ -443,7 +443,7 @@ void N6740::Calibrate_XX740_DC_Offset(int handle, CAEN_DGTZ_BoardInfo_t BoardInf
 	if (ret)
         qDebug() << "Error setting recorded parameters\n";
 
-    Save_DAC_Calibration_To_Flash(handle, BoardInfo);
+    Save_DAC_Calibration_To_Flash(BoardInfo);
 
 QuitProgram:
 		if (ErrCode) {
@@ -463,7 +463,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Set_relative_Threshold(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Set_relative_Threshold(CAEN_DGTZ_BoardInfo_t BoardInfo){
 	int ch = 0, i = 0;
 
 	//preliminary check: if baseline shift is not enabled for any channel quit
@@ -717,7 +717,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Calibrate_DC_Offset(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Calibrate_DC_Offset(CAEN_DGTZ_BoardInfo_t BoardInfo){
 	float cal[MAX_CH];
 	float offset[MAX_CH] = { 0 };
 	int i = 0, k = 0, p = 0, acq = 0, ch = 0;
@@ -938,7 +938,7 @@ void N6740::Calibrate_DC_Offset(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo){
 	if (ret)
         qDebug() << "Error resetting self trigger mode after DAC calibration\n";
 
-    Save_DAC_Calibration_To_Flash(handle, BoardInfo);
+    Save_DAC_Calibration_To_Flash(BoardInfo);
 
 QuitProgram:
 	if (ErrCode) {
@@ -957,7 +957,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-int N6740::Set_calibrated_DCO(int handle, int ch, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+int N6740::Set_calibrated_DCO(int ch, CAEN_DGTZ_BoardInfo_t BoardInfo) {
 	int ret = CAEN_DGTZ_Success;
     if (Version_used[ch] == 0) //old DC_OFFSET config, skip calibration
 		return ret;
@@ -1083,26 +1083,17 @@ int N6740::WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
 /* ########################################################################### */
 /* MAIN                                                                        */
 /* ########################################################################### */
-int N6740::oldMain(int argc, char *argv[])
+int N6740::oldMain()
 {
     //CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
     int ret = 0;
-    int  handle = -1;
     ERROR_CODES ErrCode= ERR_NONE;
-    int i, ch, Nb=0, Ne=0;
-    uint32_t AllocatedSize, BufferSize, NumEvents;
+    uint32_t AllocatedSize;
     char *buffer = NULL;
-    char *EventPtr = NULL;
     char ConfigFileName[100];
     int isVMEDevice= 0, MajorNumber;
-    uint64_t CurrentTime, PrevRateTime, ElapsedTime;
-    int nCycles= 0;
     CAEN_DGTZ_BoardInfo_t       BoardInfo;
-    CAEN_DGTZ_EventInfo_t       EventInfo;
-
     CAEN_DGTZ_UINT16_EVENT_t    *Event16=NULL; /* generic event struct with 16 bit data (10, 12, 14 and 16 bit digitizers */
-
-    CAEN_DGTZ_UINT8_EVENT_t     *Event8=NULL; /* generic event struct with 8 bit data (only for 8 bit digitizers) */ 
     FILE *f_ini;
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
@@ -1111,10 +1102,7 @@ int N6740::oldMain(int argc, char *argv[])
 	/* Open and parse default configuration file                                                       */
 	/* *************************************************************************************** */
 
-	if (argc > 1)//user entered custom filename
-		strcpy(ConfigFileName, argv[1]);
-	else 
-		strcpy(ConfigFileName, DEFAULT_CONFIG_FILE);
+    strcpy(ConfigFileName, DEFAULT_CONFIG_FILE);
 
     qDebug() << "Opening Configuration File" << ConfigFileName;
 	f_ini = fopen(ConfigFileName, "r");
@@ -1157,44 +1145,29 @@ int N6740::oldMain(int argc, char *argv[])
 	/* Check if the board needs a specific config file and parse it instead of the default one */
 	/* *************************************************************************************** */
 
-	if (argc <= 1){//detect if connected board needs a specific configuration file, only if the user did not specify his configuration file
-		int use_specific_file = 0;
-        if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) {
 
-#ifdef LINUX 
-			strcpy(ConfigFileName, "/etc/wavedump/WaveDumpConfig_X740.txt");
-#else
-			strcpy(ConfigFileName, "WaveDumpConfig_X740.txt");
-#endif		
-            qDebug() << "\nWARNING: using configuration file %s specific for Board model X740.\nEdit this file if you want to modify the default settings.\n " << ConfigFileName;
-			use_specific_file = 1;
-		}
-
-		if (use_specific_file) {
-
-			f_ini = fopen(ConfigFileName, "r");
-			if (f_ini == NULL) {
-				ErrCode = ERR_CONF_FILE_NOT_FOUND;
-				goto QuitProgram;
-			}
-            ParseConfigFile(f_ini);
-			fclose(f_ini);
-		}
-	}
+    strcpy(ConfigFileName, "WaveDumpConfig_X740.txt");
+    qDebug() << "\nWARNING: using configuration file %s specific for Board model X740.\nEdit this file if you want to modify the default settings.\n " << ConfigFileName;
+    f_ini = fopen(ConfigFileName, "r");
+    if (f_ini == NULL) {
+        ErrCode = ERR_CONF_FILE_NOT_FOUND;
+        goto QuitProgram;
+    }
+    ParseConfigFile(f_ini);
+    fclose(f_ini);
 
 	//set default DAC calibration coefficients
-	for (i = 0; i < MAX_SET; i++) {
+    for (int i = 0; i < MAX_SET; i++) {
         DAC_Calib.cal[i] = 1;
         DAC_Calib.offset[i] = 0;
 	}
 	//load DAC calibration data (if present in flash)
-    Load_DAC_Calibration_From_Flash(handle, BoardInfo);
+    Load_DAC_Calibration_From_Flash(BoardInfo);
 
     // Perform calibration (if needed).
     //if (StartupCalibration)
         //calibrate(handle, &WDrun, BoardInfo);
 
-Restart:
     // mask the channels not available for this model
     if (BoardInfo.FamilyCode != CAEN_DGTZ_XX740_FAMILY_CODE){
         EnableMask &= (1<<Nch)-1;
@@ -1204,7 +1177,7 @@ Restart:
     /* *************************************************************************************** */
     /* program the digitizer                                                                   */
     /* *************************************************************************************** */
-    ret = ProgramDigitizer(handle, BoardInfo);
+    ret = ProgramDigitizer(BoardInfo);
     if (ret) {
         ErrCode = ERR_DGZ_PROGRAM;
         goto QuitProgram;
@@ -1224,11 +1197,7 @@ Restart:
     }
 
     // Allocate memory for the event data and readout buffer
-    if(Nbit == 8)
-        ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event8);
-    else {
-        ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
-    }
+    ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
     if (ret != CAEN_DGTZ_Success) {
         ErrCode = ERR_MALLOC;
         goto QuitProgram;
@@ -1239,191 +1208,6 @@ Restart:
         goto QuitProgram;
     }
 
-	if (WDrun.Restart && WDrun.AcqRun) 
-	{
-#ifdef _WIN32
-		Sleep(300);
-#else
-		usleep(300000);
-#endif
-        Set_relative_Threshold(handle, &WDcfg, BoardInfo);
-
-		CAEN_DGTZ_SWStartAcquisition(handle);
-	}
-    else
-        qDebug() << "[s] start/stop the acquisition, [q] quit, [SPACE] help\n";
-    WDrun.Restart = 0;
-    PrevRateTime = get_time();
-    /* *************************************************************************************** */
-    /* Readout Loop                                                                            */
-    /* *************************************************************************************** */
-    while(!WDrun.Quit) {		
-        // Check for keyboard commands (key pressed)
-        CheckKeyboardCommands(handle, &WDrun, &WDcfg, BoardInfo);
-        if (WDrun.Restart) {
-            CAEN_DGTZ_SWStopAcquisition(handle);
-            CAEN_DGTZ_FreeReadoutBuffer(&buffer);
-            if(Nbit == 8)
-                CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
-            else
-                CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
-                f_ini = fopen(ConfigFileName, "r");
-                ReloadCfgStatus = ParseConfigFile(f_ini, &WDcfg);
-                fclose(f_ini);
-                goto Restart;
-        }
-        if (WDrun.AcqRun == 0)
-            continue;
-
-        /* Send a software trigger */
-        if (WDrun.ContinuousTrigger) {
-            CAEN_DGTZ_SendSWtrigger(handle);
-        }
-
-        /* Wait for interrupt (if enabled) */
-        if (InterruptNumEvents > 0) {
-            int32_t boardId;
-            int VMEHandle = -1;
-            int InterruptMask = (1 << VME_INTERRUPT_LEVEL);
-
-            BufferSize = 0;
-            NumEvents = 0;
-            // Interrupt handling
-            if (isVMEDevice) {
-                ret = CAEN_DGTZ_VMEIRQWait ((CAEN_DGTZ_ConnectionType)LinkType, LinkNum, ConetNode, (uint8_t)InterruptMask, INTERRUPT_TIMEOUT, &VMEHandle);
-            }
-            else
-                ret = CAEN_DGTZ_IRQWait(handle, INTERRUPT_TIMEOUT);
-            if (ret == CAEN_DGTZ_Timeout)  // No active interrupt requests
-                goto InterruptTimeout;
-            if (ret != CAEN_DGTZ_Success)  {
-                ErrCode = ERR_INTERRUPT;
-                goto QuitProgram;
-            }
-            // Interrupt Ack
-            if (isVMEDevice) {
-                ret = CAEN_DGTZ_VMEIACKCycle(VMEHandle, VME_INTERRUPT_LEVEL, &boardId);
-                if ((ret != CAEN_DGTZ_Success) || (boardId != VME_INTERRUPT_STATUS_ID)) {
-                    goto InterruptTimeout;
-                } else {
-                    if (INTERRUPT_MODE == CAEN_DGTZ_IRQ_MODE_ROAK)
-                        ret = CAEN_DGTZ_RearmInterrupt(handle);
-                }
-            }
-        }
-
-        /* Read data from the board */
-        ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buffer, &BufferSize);
-        if (ret) {
-
-            ErrCode = ERR_READOUT;
-            goto QuitProgram;
-        }
-        NumEvents = 0;
-        if (BufferSize != 0) {
-            ret = CAEN_DGTZ_GetNumEvents(handle, buffer, BufferSize, &NumEvents);
-            if (ret) {
-                ErrCode = ERR_READOUT;
-                goto QuitProgram;
-            }
-        }
-		else {
-			uint32_t lstatus;
-			ret = CAEN_DGTZ_ReadRegister(handle, CAEN_DGTZ_ACQ_STATUS_ADD, &lstatus);
-			if (ret) {
-                qDebug() << "Warning: Failure reading reg:%x (%d)\n" << CAEN_DGTZ_ACQ_STATUS_ADD << " " << ret;
-			}
-			else {
-				if (lstatus & (0x1 << 19)) {
-					ErrCode = ERR_OVERTEMP;
-					goto QuitProgram;
-				}
-			}
-		}
-InterruptTimeout:
-        /* Calculate throughput and trigger rate (every second) */
-        Nb += BufferSize;
-        Ne += NumEvents;
-        CurrentTime = get_time();
-        ElapsedTime = CurrentTime - PrevRateTime;
-
-        nCycles++;
-        if (ElapsedTime > 1000) {
-            if (Nb == 0)
-                if (ret == CAEN_DGTZ_Timeout)
-                    qDebug() << "Timeout...\n";
-                else
-                    qDebug() << "No data...\n";
-            else
-                qDebug() << "Reading at " << (float)Nb/((float)ElapsedTime*1048.576f) << " MB/s (Trg Rate):" <<  (float)Ne*1000.0f/(float)ElapsedTime << " Hz)\n";
-            nCycles= 0;
-            Nb = 0;
-            Ne = 0;
-            PrevRateTime = CurrentTime;
-        }
-
-        /* Analyze data */
-        for(i = 0; i < (int)NumEvents; i++) {
-
-            /* Get one event from the readout buffer */
-            ret = CAEN_DGTZ_GetEventInfo(handle, buffer, BufferSize, i, &EventInfo, &EventPtr);
-            if (ret) {
-                ErrCode = ERR_EVENT_BUILD;
-                goto QuitProgram;
-            }
-            /* decode the event */
-            if (Nbit == 8)
-                ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event8);
-            else
-                ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
-                if (ret) {
-                    ErrCode = ERR_EVENT_BUILD;
-                    goto QuitProgram;
-                }
-
-                /* Update Histograms */
-                if (WDrun.RunHisto) {
-                    for(ch=0; ch<Nch; ch++) {
-                        int chmask = (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE)? (ch/8) : ch;
-                        if (!(EventInfo.ChannelMask & (1<<chmask)))
-                            continue;
-                        if (WDrun.Histogram[ch] == NULL) {
-                            if ((WDrun.Histogram[ch] = (uint32_t *)malloc((uint64_t)(1<<Nbit) * sizeof(uint32_t))) == NULL) {
-                                ErrCode = ERR_HISTO_MALLOC;
-                                goto QuitProgram;
-                            }
-                            memset(WDrun.Histogram[ch], 0, (uint64_t)(1<<Nbit) * sizeof(uint32_t));
-                        }
-                        if (Nbit == 8)
-                            for(i=0; i<(int)Event8->ChSize[ch]; i++)
-                                WDrun.Histogram[ch][Event8->DataChannel[ch][i]]++;
-                        else {
-                            for(i=0; i<(int)Event16->ChSize[ch]; i++)
-                                WDrun.Histogram[ch][Event16->DataChannel[ch][i]]++;
-                        }
-                    }
-                }
-
-                /* Write Event data to file */
-                if (WDrun.ContinuousWrite || WDrun.SingleWrite) {
-                    // Note: use a thread here to allow parallel readout and file writing
-                    if (Nbit == 8) {
-                        ret = WriteOutputFiles(&WDcfg, &WDrun, &EventInfo, Event8);
-                    }
-                    else {
-                        ret = WriteOutputFiles(&WDcfg, &WDrun, &EventInfo, Event16);
-                    }
-                    if (ret) {
-                        ErrCode = ERR_OUTFILE_WRITE;
-                        goto QuitProgram;
-                    }
-                    if (WDrun.SingleWrite) {
-                        qDebug() << "Single Event saved to output files\n";
-                        WDrun.SingleWrite = 0;
-                    }
-                }
-        }
-    }
     ErrCode = ERR_NONE;
 
 QuitProgram:
@@ -1434,26 +1218,6 @@ QuitProgram:
         //getch();
 #endif
     }
-
-    /* stop the acquisition */
-    CAEN_DGTZ_SWStopAcquisition(handle);
-
-    /* close the output files and free histograms*/
-    for (ch = 0; ch < Nch; ch++) {
-        if (WDrun.fout[ch])
-            fclose(WDrun.fout[ch]);
-        if (WDrun.Histogram[ch])
-            free(WDrun.Histogram[ch]);
-    }
-
-    /* close the device and free the buffers */
-    if(Event8)
-        CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
-    if(Event16)
-        CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
-    CAEN_DGTZ_FreeReadoutBuffer(&buffer);
-    CAEN_DGTZ_CloseDigitizer(handle);
-
     return 0;
 }
 
@@ -2007,7 +1771,7 @@ int N6740::ParseConfigFile(FILE *f_ini)
     return ret;
 }
 
-void N6740::Load_DAC_Calibration_From_Flash(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+void N6740::Load_DAC_Calibration_From_Flash(CAEN_DGTZ_BoardInfo_t BoardInfo) {
     FLASH_API_ERROR_CODES err = FLASH_API_SUCCESS;
     uint8_t *buffer;
     int ch = 0;
@@ -2044,7 +1808,7 @@ void N6740::Load_DAC_Calibration_From_Flash(int handle, CAEN_DGTZ_BoardInfo_t Bo
     //printf("\nDAC calibration correctly loaded from board flash.\n");
 }
 
-void N6740::Save_DAC_Calibration_To_Flash(int handle, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+void N6740::Save_DAC_Calibration_To_Flash(CAEN_DGTZ_BoardInfo_t BoardInfo) {
     FLASH_API_ERROR_CODES err = FLASH_API_SUCCESS;
     uint8_t *buffer;
     int ch = 0;
