@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     w.show();
     qDebug() << "qDebug (with lower case q) testing. everything is ok, i suppose";
     N6740 test;
-    test.oldMain(0,0);
+    //test.oldMain(0,0);
 
     return a.exec();
 }

@@ -151,7 +151,7 @@ int N6740::WriteRegisterBitmask(uint32_t address, uint32_t data, uint32_t mask) 
 *   \param   WDcfg:   WaveDumpConfig data structure
 *   \return  0 = Success; negative numbers are error codes
 */
-int N6740::ProgramDigitizer(CAEN_DGTZ_BoardInfo_t BoardInfo)
+int N6740::ProgramDigitizer()
 {
     int i, j, ret = 0;
 
@@ -199,7 +199,7 @@ int N6740::ProgramDigitizer(CAEN_DGTZ_BoardInfo_t BoardInfo)
         for(i=0; i<(Nch/8); i++) {
             if (EnableMask & (1<<i)) {
                 if(Version_used[i] == 1)
-                    ret |= Set_calibrated_DCO(i, BoardInfo);
+                    ret |= Set_calibrated_DCO(i);
                 else
                     ret |= CAEN_DGTZ_SetGroupDCOffset(handle, i, DCoffset[i]);
                 ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, ChannelTriggerMode[i], (1<<i));
@@ -213,7 +213,7 @@ int N6740::ProgramDigitizer(CAEN_DGTZ_BoardInfo_t BoardInfo)
         for (i = 0; i < Nch; i++) {
             if (EnableMask & (1<<i)) {
                 if (Version_used[i] == 1)
-                    ret |= Set_calibrated_DCO(i, BoardInfo);
+                    ret |= Set_calibrated_DCO(i);
 				else
                     ret |= CAEN_DGTZ_SetChannelDCOffset(handle, i, DCoffset[i]);
                 if (BoardInfo.FamilyCode != CAEN_DGTZ_XX730_FAMILY_CODE &&
@@ -272,7 +272,7 @@ int N6740::ProgramDigitizer(CAEN_DGTZ_BoardInfo_t BoardInfo)
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Calibrate_XX740_DC_Offset(CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Calibrate_XX740_DC_Offset(){
 	float cal[MAX_CH];
 	float offset[MAX_CH] = { 0 };
 	int i = 0, acq = 0, k = 0, p=0, g = 0;
@@ -443,7 +443,7 @@ void N6740::Calibrate_XX740_DC_Offset(CAEN_DGTZ_BoardInfo_t BoardInfo){
 	if (ret)
         qDebug() << "Error setting recorded parameters\n";
 
-    Save_DAC_Calibration_To_Flash(BoardInfo);
+    Save_DAC_Calibration_To_Flash();
 
 QuitProgram:
 		if (ErrCode) {
@@ -463,7 +463,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Set_relative_Threshold(CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Set_relative_Threshold(){
 	int ch = 0, i = 0;
 
 	//preliminary check: if baseline shift is not enabled for any channel quit
@@ -717,7 +717,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-void N6740::Calibrate_DC_Offset(CAEN_DGTZ_BoardInfo_t BoardInfo){
+void N6740::Calibrate_DC_Offset(){
 	float cal[MAX_CH];
 	float offset[MAX_CH] = { 0 };
 	int i = 0, k = 0, p = 0, acq = 0, ch = 0;
@@ -938,7 +938,7 @@ void N6740::Calibrate_DC_Offset(CAEN_DGTZ_BoardInfo_t BoardInfo){
 	if (ret)
         qDebug() << "Error resetting self trigger mode after DAC calibration\n";
 
-    Save_DAC_Calibration_To_Flash(BoardInfo);
+    Save_DAC_Calibration_To_Flash();
 
 QuitProgram:
 	if (ErrCode) {
@@ -957,7 +957,7 @@ QuitProgram:
 *   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
 *   \param   BoardInfo: structure with the board info
 */
-int N6740::Set_calibrated_DCO(int ch, CAEN_DGTZ_BoardInfo_t BoardInfo) {
+int N6740::Set_calibrated_DCO(int ch) {
 	int ret = CAEN_DGTZ_Success;
     if (Version_used[ch] == 0) //old DC_OFFSET config, skip calibration
 		return ret;
@@ -1092,7 +1092,6 @@ int N6740::oldMain()
     char *buffer = NULL;
     char ConfigFileName[100];
     int isVMEDevice= 0, MajorNumber;
-    CAEN_DGTZ_BoardInfo_t       BoardInfo;
     CAEN_DGTZ_UINT16_EVENT_t    *Event16=NULL; /* generic event struct with 16 bit data (10, 12, 14 and 16 bit digitizers */
     FILE *f_ini;
 
@@ -1162,7 +1161,7 @@ int N6740::oldMain()
         DAC_Calib.offset[i] = 0;
 	}
 	//load DAC calibration data (if present in flash)
-    Load_DAC_Calibration_From_Flash(BoardInfo);
+    Load_DAC_Calibration_From_Flash();
 
     // Perform calibration (if needed).
     //if (StartupCalibration)
@@ -1177,7 +1176,7 @@ int N6740::oldMain()
     /* *************************************************************************************** */
     /* program the digitizer                                                                   */
     /* *************************************************************************************** */
-    ret = ProgramDigitizer(BoardInfo);
+    ret = ProgramDigitizer();
     if (ret) {
         ErrCode = ERR_DGZ_PROGRAM;
         goto QuitProgram;
@@ -1771,7 +1770,7 @@ int N6740::ParseConfigFile(FILE *f_ini)
     return ret;
 }
 
-void N6740::Load_DAC_Calibration_From_Flash(CAEN_DGTZ_BoardInfo_t BoardInfo) {
+void N6740::Load_DAC_Calibration_From_Flash() {
     FLASH_API_ERROR_CODES err = FLASH_API_SUCCESS;
     uint8_t *buffer;
     int ch = 0;
@@ -1808,7 +1807,7 @@ void N6740::Load_DAC_Calibration_From_Flash(CAEN_DGTZ_BoardInfo_t BoardInfo) {
     //printf("\nDAC calibration correctly loaded from board flash.\n");
 }
 
-void N6740::Save_DAC_Calibration_To_Flash(CAEN_DGTZ_BoardInfo_t BoardInfo) {
+void N6740::Save_DAC_Calibration_To_Flash() {
     FLASH_API_ERROR_CODES err = FLASH_API_SUCCESS;
     uint8_t *buffer;
     int ch = 0;

@@ -103,18 +103,18 @@ class N6740 : public QObject {
 public:
     N6740();
     int oldMain();
-    void Set_relative_Threshold(CAEN_DGTZ_BoardInfo_t BoardInfo);
-    void Calibrate_DC_Offset(CAEN_DGTZ_BoardInfo_t BoardInfo);
-    void Calibrate_XX740_DC_Offset(CAEN_DGTZ_BoardInfo_t BoardInfo);
-    int Set_calibrated_DCO(int ch, CAEN_DGTZ_BoardInfo_t BoardInfo);
+    void Set_relative_Threshold();
+    void Calibrate_DC_Offset();
+    void Calibrate_XX740_DC_Offset();
+    int Set_calibrated_DCO(int ch);
 
     int ParseConfigFile(FILE *f_ini);
-    int ProgramDigitizer(CAEN_DGTZ_BoardInfo_t BoardInfo);
+    int ProgramDigitizer();
     int WriteRegisterBitmask(uint32_t address, uint32_t data, uint32_t mask);
     int WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event);
 
-    void Load_DAC_Calibration_From_Flash(CAEN_DGTZ_BoardInfo_t BoardInfo);
-    void Save_DAC_Calibration_To_Flash(CAEN_DGTZ_BoardInfo_t BoardInfo);
+    void Load_DAC_Calibration_From_Flash();
+    void Save_DAC_Calibration_To_Flash();
     void SetDefaultConfiguration();
 
 private:
@@ -168,6 +168,7 @@ private:
 
     // oldmain part
     int  handle = -1;
+    CAEN_DGTZ_BoardInfo_t BoardInfo;
 };
 
 /* new things */
