@@ -153,7 +153,7 @@ int N6740::WriteRegisterBitmask(uint32_t address, uint32_t data, uint32_t mask) 
 */
 int N6740::ProgramDigitizer()
 {
-    int i, j, ret = 0;
+    int i, ret = 0;
 
     /* reset the digitizer */
     ret |= CAEN_DGTZ_Reset(handle);
@@ -165,93 +165,43 @@ int N6740::ProgramDigitizer()
     // Set the waveform test bit for debugging
     if (TestPattern)
         ret |= CAEN_DGTZ_WriteRegister(handle, CAEN_DGTZ_BROAD_CH_CONFIGBIT_SET_ADD, 1<<3);
-    if ((BoardInfo.FamilyCode == CAEN_DGTZ_XX751_FAMILY_CODE) || (BoardInfo.FamilyCode == CAEN_DGTZ_XX731_FAMILY_CODE)) {
-        ret |= CAEN_DGTZ_SetDESMode(handle, DesMode);
-    }
+
     ret |= CAEN_DGTZ_SetRecordLength(handle, RecordLength);
     ret |= CAEN_DGTZ_GetRecordLength(handle, &RecordLength);
 
-    if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX724_FAMILY_CODE) {
-        ret |= CAEN_DGTZ_SetDecimationFactor(handle, DecimationFactor);
-    }
+    ret |= CAEN_DGTZ_SetDecimationFactor(handle, DecimationFactor);
 
     ret |= CAEN_DGTZ_SetPostTriggerSize(handle, PostTrigger);
     uint32_t pt;
     ret |= CAEN_DGTZ_GetPostTriggerSize(handle, &pt);
     PostTrigger = pt;
     ret |= CAEN_DGTZ_SetIOLevel(handle, FPIOtype);
-    if( InterruptNumEvents > 0) {
-        // Interrupt handling
-        if( ret |= CAEN_DGTZ_SetInterruptConfig( handle, CAEN_DGTZ_ENABLE,
-            VME_INTERRUPT_LEVEL, VME_INTERRUPT_STATUS_ID,
-            (uint16_t)InterruptNumEvents, INTERRUPT_MODE)!= CAEN_DGTZ_Success) {
-                qDebug() << "\nError configuring interrupts. Interrupts disabled\n\n";
-                InterruptNumEvents = 0;
-        }
-    }
+//    if( InterruptNumEvents > 0) {
+//        // Interrupt handling
+//        if( ret |= CAEN_DGTZ_SetInterruptConfig( handle, CAEN_DGTZ_ENABLE,
+//            VME_INTERRUPT_LEVEL, VME_INTERRUPT_STATUS_ID,
+//            (uint16_t)InterruptNumEvents, INTERRUPT_MODE)!= CAEN_DGTZ_Success) {
+//                qDebug() << "\nError configuring interrupts. Interrupts disabled\n\n";
+//                InterruptNumEvents = 0;
+//        }
+//    }
 	
     ret |= CAEN_DGTZ_SetMaxNumEventsBLT(handle, NumEvents);
     ret |= CAEN_DGTZ_SetAcquisitionMode(handle, CAEN_DGTZ_SW_CONTROLLED);
     ret |= CAEN_DGTZ_SetExtTriggerInputMode(handle, ExtTriggerMode);
 
-    if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE){
-        ret |= CAEN_DGTZ_SetGroupEnableMask(handle, EnableMask);
-        for(i=0; i<(Nch/8); i++) {
-            if (EnableMask & (1<<i)) {
-                if(Version_used[i] == 1)
-                    ret |= Set_calibrated_DCO(i);
-                else
-                    ret |= CAEN_DGTZ_SetGroupDCOffset(handle, i, DCoffset[i]);
-                ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, ChannelTriggerMode[i], (1<<i));
-                ret |= CAEN_DGTZ_SetGroupTriggerThreshold(handle, i, Threshold[i]);
-                ret |= CAEN_DGTZ_SetChannelGroupMask(handle, i, GroupTrgEnableMask[i]);
-            }
-            ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, PulsePolarity_to_TriggerPolarity(PulsePolarity[i])); //.TriggerEdge
+    ret |= CAEN_DGTZ_SetGroupEnableMask(handle, EnableMask);
+    for(i=0; i<(Nch/8); i++) {
+        if (EnableMask & (1<<i)) {
+            if(Version_used[i] == 1)
+                ret |= Set_calibrated_DCO(i);
+            else
+                ret |= CAEN_DGTZ_SetGroupDCOffset(handle, i, DCoffset[i]);
+            ret |= CAEN_DGTZ_SetGroupSelfTrigger(handle, ChannelTriggerMode[i], (1<<i));
+            ret |= CAEN_DGTZ_SetGroupTriggerThreshold(handle, i, Threshold[i]);
+            ret |= CAEN_DGTZ_SetChannelGroupMask(handle, i, GroupTrgEnableMask[i]);
         }
-    } else {
-        ret |= CAEN_DGTZ_SetChannelEnableMask(handle, EnableMask);
-        for (i = 0; i < Nch; i++) {
-            if (EnableMask & (1<<i)) {
-                if (Version_used[i] == 1)
-                    ret |= Set_calibrated_DCO(i);
-				else
-                    ret |= CAEN_DGTZ_SetChannelDCOffset(handle, i, DCoffset[i]);
-                if (BoardInfo.FamilyCode != CAEN_DGTZ_XX730_FAMILY_CODE &&
-                    BoardInfo.FamilyCode != CAEN_DGTZ_XX725_FAMILY_CODE)
-                    ret |= CAEN_DGTZ_SetChannelSelfTrigger(handle, ChannelTriggerMode[i], (1<<i));
-                ret |= CAEN_DGTZ_SetChannelTriggerThreshold(handle, i, Threshold[i]);
-                ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, PulsePolarity_to_TriggerPolarity(PulsePolarity[i])); //.TriggerEdge
-            }
-        }
-        if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE ||
-            BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) {
-            // channel pair settings for x730 boards
-            for (i = 0; i < Nch; i += 2) {
-                if (EnableMask & (0x3 << i)) {
-                    CAEN_DGTZ_TriggerMode_t mode = ChannelTriggerMode[i];
-                    uint32_t pair_chmask = 0;
-
-                    // Build mode and relevant channelmask. The behaviour is that,
-                    // if the triggermode of one channel of the pair is DISABLED,
-                    // this channel doesn't take part to the trigger generation.
-                    // Otherwise, if both are different from DISABLED, the one of
-                    // the even channel is used.
-                    if (ChannelTriggerMode[i] != CAEN_DGTZ_TRGMODE_DISABLED) {
-                        if (ChannelTriggerMode[i + 1] == CAEN_DGTZ_TRGMODE_DISABLED)
-                            pair_chmask = (0x1 << i);
-                        else
-                            pair_chmask = (0x3 << i);
-                    }
-                    else {
-                        mode = ChannelTriggerMode[i + 1];
-                        pair_chmask = (0x2 << i);
-                    }
-
-                    pair_chmask &= EnableMask;
-                    ret |= CAEN_DGTZ_SetChannelSelfTrigger(handle, mode, pair_chmask);
-                }
-            }
-        }
+        ret |= CAEN_DGTZ_SetTriggerPolarity(handle, i, PulsePolarity_to_TriggerPolarity(PulsePolarity[i])); //.TriggerEdge
     }
 
     /* execute generic write commands */
@@ -710,246 +660,6 @@ QuitProgram:
 	}
 }
 
-/*! \fn      void Calibrate_DC_Offset(int handle, WaveDumpConfig_t WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
-*   \brief   calibrates DAC of enabled channels (only if BASELINE_SHIFT is in use)
-*
-*   \param   handle   Digitizer handle
-*   \param   WDcfg:   Pointer to the WaveDumpConfig_t data structure
-*   \param   BoardInfo: structure with the board info
-*/
-void N6740::Calibrate_DC_Offset(){
-	float cal[MAX_CH];
-	float offset[MAX_CH] = { 0 };
-	int i = 0, k = 0, p = 0, acq = 0, ch = 0;
-	for (i = 0; i < MAX_CH; i++)
-		cal[i] = 1;
-	CAEN_DGTZ_ErrorCode ret;
-	CAEN_DGTZ_AcqMode_t mem_mode;
-	uint32_t  AllocatedSize;
-
-	ERROR_CODES ErrCode = ERR_NONE;
-	uint32_t BufferSize;
-	CAEN_DGTZ_EventInfo_t       EventInfo;
-	char *buffer = NULL;
-	char *EventPtr = NULL;
-	CAEN_DGTZ_UINT16_EVENT_t    *Event16 = NULL;
-	CAEN_DGTZ_UINT8_EVENT_t     *Event8 = NULL;
-
-	float avg_value[NPOINTS][MAX_CH] = { 0 };
-	uint32_t dc[NPOINTS] = { 25,75 }; //test values (%)
-	uint32_t chmask = 0;
-
-	ret = CAEN_DGTZ_GetAcquisitionMode(handle, &mem_mode);//chosen value stored
-	if (ret)
-        qDebug() << "Error trying to read acq mode!!\n";
-	ret = CAEN_DGTZ_SetAcquisitionMode(handle, CAEN_DGTZ_SW_CONTROLLED);
-	if (ret)
-        qDebug() << "Error trying to set acq mode!!\n";
-	ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, CAEN_DGTZ_TRGMODE_DISABLED);
-	if (ret)
-        qDebug() << "Error trying to set ext trigger!!\n";
-	for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++)
-		chmask |= (1 << ch);
-	ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, CAEN_DGTZ_TRGMODE_DISABLED, chmask);
-	if (ret)
-        qDebug() << "Warning: error disabling channels self trigger\n";
-	ret = CAEN_DGTZ_SetChannelEnableMask(handle, chmask);
-	if (ret)
-        qDebug() << "Warning: error enabling channels.\n";
-	ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, 1);
-	if (ret)
-        qDebug() << "Warning: error setting max BLT number\n";
-	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX724_FAMILY_CODE) {
-		ret = CAEN_DGTZ_SetDecimationFactor(handle, 1);
-		if (ret)
-            qDebug() << "Error trying to set decimation factor!!\n";
-	}
-
-	///malloc
-	ret = CAEN_DGTZ_MallocReadoutBuffer(handle, &buffer, &AllocatedSize);
-	if (ret) {
-		ErrCode = ERR_MALLOC;
-		goto QuitProgram;
-	}
-    if (Nbit == 8)
-		ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event8);
-	else {
-		ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
-	}
-	if (ret != CAEN_DGTZ_Success) {
-		ErrCode = ERR_MALLOC;
-		goto QuitProgram;
-	}
-
-    qDebug() << "Starting DAC calibration...\n";
-	
-	for (p = 0; p < NPOINTS; p++){
-		//set new dco  test value to all channels
-		for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
-                ret = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)ch, (uint32_t)((float)(abs((int)dc[p] - 100))*(655.35)));
-				if (ret)
-                    qDebug() << "Error setting ch " << ch << " test offset\n";
-		}
-#ifdef _WIN32
-					Sleep(200);
-#else
-					usleep(200000);
-#endif
-		CAEN_DGTZ_ClearData(handle);
-
-		ret = CAEN_DGTZ_SWStartAcquisition(handle);
-		if (ret){
-            qDebug() << "Error starting acquisition\n";
-			goto QuitProgram;
-		}
-		
-		int value[NACQS][MAX_CH] = { 0 };//baseline values of the NACQS
-		for (acq = 0; acq < NACQS; acq++){
-			CAEN_DGTZ_SendSWtrigger(handle);
-
-			ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buffer, &BufferSize);
-			if (ret) {
-					ErrCode = ERR_READOUT;
-					goto QuitProgram;
-			}
-			if (BufferSize == 0)
-				continue;
-			ret = CAEN_DGTZ_GetEventInfo(handle, buffer, BufferSize, 0, &EventInfo, &EventPtr);
-			if (ret) {
-					ErrCode = ERR_EVENT_BUILD;
-					goto QuitProgram;
-			}
-			// decode the event //
-            if (Nbit == 8)
-				ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event8);
-				else
-				ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
-
-			if (ret) {
-				ErrCode = ERR_EVENT_BUILD;
-				goto QuitProgram;
-			}
-
-			for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++){
-					for (i = 1; i < 21; i++) //mean over 20 samples
-					{
-                        if (Nbit == 8)
-							value[acq][ch] += (int)(Event8->DataChannel[ch][i]);
-						else
-							value[acq][ch] += (int)(Event16->DataChannel[ch][i]);
-					}
-					value[acq][ch] = (value[acq][ch] / 20);
-			}
-
-		}//for acq
-
-		///check for clean baselines
-		for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
-				int max = 0, ok = 0;
-				int mpp = 0;
-				int size = (int)pow(2, (double)BoardInfo.ADC_NBits);
-                int *freq = (int*)calloc(size, sizeof(int));
-
-				//find most probable value mpp
-				for (k = 0; k < NACQS; k++) {
-					if (value[k][ch] > 0 && value[k][ch] < size) {
-						freq[value[k][ch]]++;
-						if (freq[value[k][ch]] > max) {
-							max = freq[value[k][ch]];
-							mpp = value[k][ch];
-						}
-					}
-				}
-				free(freq);
-				//discard values too far from mpp
-				for (k = 0; k < NACQS; k++) {
-					if (value[k][ch] >= (mpp - 5) && value[k][ch] <= (mpp + 5)) {
-						avg_value[p][ch] = avg_value[p][ch] + (float)value[k][ch];
-						ok++;
-					}
-				}
-				//calculate final best average value
-				avg_value[p][ch] = (avg_value[p][ch] / (float)ok)*100. / (float)size;
-		}
-
-		CAEN_DGTZ_SWStopAcquisition(handle);
-	}//close for p
-
-	for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
-			cal[ch] = ((float)(avg_value[1][ch] - avg_value[0][ch]) / (float)(dc[1] - dc[0]));
-			offset[ch] = (float)(dc[1] * avg_value[0][ch] - dc[0] * avg_value[1][ch]) / (float)(dc[1] - dc[0]);
-            qDebug() << "Channel " << ch << " DAC calibration ready.\n";
-			//printf("Channel %d --> Cal %f   offset %f\n", ch, cal[ch], offset[ch]);
-
-            DAC_Calib.cal[ch] = cal[ch];
-            DAC_Calib.offset[ch] = offset[ch];
-	}
-
-	CAEN_DGTZ_ClearData(handle);
-
-	 ///free events e buffer
-	CAEN_DGTZ_FreeReadoutBuffer(&buffer);
-    if (Nbit == 8)
-		CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
-	else
-		CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
-
-	//reset settings
-    ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, NumEvents);
-    ret = CAEN_DGTZ_SetPostTriggerSize(handle, PostTrigger);
-    ret = CAEN_DGTZ_SetAcquisitionMode(handle, mem_mode);
-    ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, ExtTriggerMode);
-    ret = CAEN_DGTZ_SetChannelEnableMask(handle, EnableMask);
-	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX724_FAMILY_CODE)
-        ret = CAEN_DGTZ_SetDecimationFactor(handle, DecimationFactor);
-	if (ret)
-        qDebug() << "Error resetting some parameters after DAC calibration\n";
-
-	//reset self trigger mode settings
-	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE || BoardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) {
-		// channel pair settings for x730 boards
-        for (i = 0; i < Nch; i += 2) {
-            if (EnableMask & (0x3 << i)) {
-                CAEN_DGTZ_TriggerMode_t mode = ChannelTriggerMode[i];
-				uint32_t pair_chmask = 0;
-
-                if (ChannelTriggerMode[i] != CAEN_DGTZ_TRGMODE_DISABLED) {
-                    if (ChannelTriggerMode[i + 1] == CAEN_DGTZ_TRGMODE_DISABLED)
-						pair_chmask = (0x1 << i);
-					else
-						pair_chmask = (0x3 << i);
-				}
-				else {
-                    mode = ChannelTriggerMode[i + 1];
-					pair_chmask = (0x2 << i);
-				}
-
-                pair_chmask &= EnableMask;
-                ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, mode, pair_chmask);
-			}
-		}
-	}
-	else {
-        for (i = 0; i < Nch; i++) {
-            if (EnableMask & (1 << i))
-                ret = CAEN_DGTZ_SetChannelSelfTrigger(handle, ChannelTriggerMode[i], (1 << i));
-		}
-	}
-	if (ret)
-        qDebug() << "Error resetting self trigger mode after DAC calibration\n";
-
-    Save_DAC_Calibration_To_Flash();
-
-QuitProgram:
-	if (ErrCode) {
-        qDebug() << ErrMsg[ErrCode];
-#ifdef WIN32
-        qDebug() << "Press a key to quit\n";
-#endif
-	}
-
-}
-
 /*! \fn      void Set_calibrated_DCO(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
 *   \brief   sets the calibrated DAC value using calibration data (only if BASELINE_SHIFT is in use)
 *
@@ -972,16 +682,9 @@ int N6740::Set_calibrated_DCO(int ch) {
         if (DCoffset[ch] > 65535) DCoffset[ch] = 65535;
 	}
 
-	if (BoardInfo.FamilyCode == CAEN_DGTZ_XX740_FAMILY_CODE) {
-        ret = CAEN_DGTZ_SetGroupDCOffset(handle, (uint32_t)ch, DCoffset[ch]);
-		if (ret)
-            qDebug() << "Error setting group " << ch << " offset\n";
-	}
-	else {
-        ret = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)ch, DCoffset[ch]);
-		if (ret)
-            qDebug() << "Error setting channel " << ch << " offset\n";
-	}
+    ret = CAEN_DGTZ_SetGroupDCOffset(handle, (uint32_t)ch, DCoffset[ch]);
+    if (ret)
+        qDebug() << "Error setting group " << ch << " offset\n";
 
 	return ret;
 }
@@ -994,19 +697,16 @@ int N6740::Set_calibrated_DCO(int ch) {
 *   \param   EventInfo Pointer to the EventInfo data structure
 *   \param   Event Pointer to the Event to write
 */
-int N6740::WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
+int N6740::WriteOutputFiles()
 {
     int ch, j, ns;
-    CAEN_DGTZ_UINT16_EVENT_t  *Event16 = NULL;
-    CAEN_DGTZ_UINT8_EVENT_t   *Event8 = NULL;
+    //CAEN_DGTZ_UINT16_EVENT_t  *Event16 = NULL;
+    //CAEN_DGTZ_UINT8_EVENT_t   *Event8 = NULL;
 
-    if (Nbit == 8)
-        Event8 = (CAEN_DGTZ_UINT8_EVENT_t *)Event;
-    else
-        Event16 = (CAEN_DGTZ_UINT16_EVENT_t *)Event;
+    //Event16 = (CAEN_DGTZ_UINT16_EVENT_t *)Event;
 
     for (ch = 0; ch < Nch; ch++) {
-        int Size = (Nbit == 8) ? Event8->ChSize[ch] : Event16->ChSize[ch];
+        int Size = Event16->ChSize[ch];
         if (Size <= 0) {
             continue;
         }
@@ -1016,11 +716,11 @@ int N6740::WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
             // Binary file format
             uint32_t BinHeader[6];
             BinHeader[0] = (Nbit == 8) ? Size + 6*sizeof(*BinHeader) : Size*2 + 6*sizeof(*BinHeader);
-            BinHeader[1] = EventInfo->BoardId;
-            BinHeader[2] = EventInfo->Pattern;
+            BinHeader[1] = EventInfo.BoardId;
+            BinHeader[2] = EventInfo.Pattern;
             BinHeader[3] = ch;
-            BinHeader[4] = EventInfo->EventCounter;
-            BinHeader[5] = EventInfo->TriggerTimeTag;
+            BinHeader[4] = EventInfo.EventCounter;
+            BinHeader[5] = EventInfo.TriggerTimeTag;
             if (!fout[ch]) {
                 char fname[100];
                 sprintf(fname, "wave%d.dat", ch);
@@ -1036,10 +736,7 @@ int N6740::WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
                     return -1;
                 }
             }
-            if (Nbit == 8)
-                ns = (int)fwrite(Event8->DataChannel[ch], 1, Size, fout[ch]);
-            else
-                ns = (int)fwrite(Event16->DataChannel[ch] , 1 , Size*2, fout[ch]) / 2;
+            ns = (int)fwrite(Event16->DataChannel[ch] , 1 , Size*2, fout[ch]) / 2;
             if (ns != Size) {
                 // error writing to file
                 fclose(fout[ch]);
@@ -1057,18 +754,15 @@ int N6740::WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event)
             if( OutFileFlags & OFF_HEADER) {
                 // Write the Channel Header
                 fprintf(fout[ch], "Record Length: %d\n", Size);
-                fprintf(fout[ch], "BoardID: %2d\n", EventInfo->BoardId);
+                fprintf(fout[ch], "BoardID: %2d\n", EventInfo.BoardId);
                 fprintf(fout[ch], "Channel: %d\n", ch);
-                fprintf(fout[ch], "Event Number: %d\n", EventInfo->EventCounter);
-                fprintf(fout[ch], "Pattern: 0x%04X\n", EventInfo->Pattern & 0xFFFF);
-                fprintf(fout[ch], "Trigger Time Stamp: %u\n", EventInfo->TriggerTimeTag);
+                fprintf(fout[ch], "Event Number: %d\n", EventInfo.EventCounter);
+                fprintf(fout[ch], "Pattern: 0x%04X\n", EventInfo.Pattern & 0xFFFF);
+                fprintf(fout[ch], "Trigger Time Stamp: %u\n", EventInfo.TriggerTimeTag);
                 fprintf(fout[ch], "DC offset (DAC): 0x%04X\n", DCoffset[ch] & 0xFFFF);
             }
             for(j=0; j<Size; j++) {
-                if (Nbit == 8)
-                    fprintf(fout[ch], "%d\n", Event8->DataChannel[ch][j]);
-                else
-                    fprintf(fout[ch], "%d\n", Event16->DataChannel[ch][j]);
+                 fprintf(fout[ch], "%d\n", Event16->DataChannel[ch][j]);
             }
         }
         if (true) {           // WDrun->SingleWrite
@@ -1092,7 +786,6 @@ int N6740::oldMain()
     char *buffer = NULL;
     char ConfigFileName[100];
     int isVMEDevice= 0, MajorNumber;
-    CAEN_DGTZ_UINT16_EVENT_t    *Event16=NULL; /* generic event struct with 16 bit data (10, 12, 14 and 16 bit digitizers */
     FILE *f_ini;
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number

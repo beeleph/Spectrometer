@@ -23,10 +23,12 @@ int main(int argc, char *argv[])
  *
  *  Убираем текующую обработку ошибок. Переделаем на try catch.
  *
+ * EventInfo и прочее можно добавить в класс N6740. Переменная так и так создавалась заранее и крутилась до бесконечности в цикле работы.
  *
  *  Полностью заменить CheckKeyboardCommand и соответсвующий вызов в Oldmain.
  *  Нужные функции из CKC - quit, restart, sendSWtrigger, singlewrite/continuouswrite, set_relative_threshold -> swstartacquisition,
  * calibrate_DC_offset -> -> ,
  *  Зачем Freeevent при рестарте?, Что такое Interrupt? Только для VME?, CAEN_readData, CAEN_GetNumEvents, CAEN_ReadRegister(...,status,...)
  *
+ *  По-возможности попробовать удалить директивы компилятора.
 */

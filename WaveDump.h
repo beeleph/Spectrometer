@@ -28,37 +28,17 @@
 #include <QDebug>
 #include <flash.h>
 
-#ifdef WIN32
 
-    #include <time.h>
-    #include <sys/timeb.h>
-    #include <conio.h>
-    #include <process.h>
+#include <time.h>
+#include <sys/timeb.h>
+#include <conio.h>
+#include <process.h>
 
-	#define getch _getch     /* redefine POSIX 'deprecated' */
-	#define kbhit _kbhit     /* redefine POSIX 'deprecated' */
+#define		_PACKED_            // Какая-то дичь которая сжимает структуры (убирает пропуски необходимые для добора до 32х или 64х бит) чтобы??? чтобы они меньше памяти занимали?
+#define		_INLINE_            // директива для прямой вставки функций в месте их вызова вместо использования скомпилированной и оптимизированной версии.
 
-	#define		_PACKED_
-	#define		_INLINE_		
 
-#else
-    #include <unistd.h>
-    #include <stdint.h>   /* C99 compliant compilers: uint64_t */
-    #include <ctype.h>    /* toupper() */
-    #include <sys/time.h>
-
-	#define		_PACKED_		__attribute__ ((packed, aligned(1)))
-	#define		_INLINE_		__inline__ 
-
-#endif
-
-#ifdef LINUX
-#define DEFAULT_CONFIG_FILE  "/etc/wavedump/WaveDumpConfig.txt"
-#define GNUPLOT_DEFAULT_PATH "/usr/bin/"
-#else
 #define DEFAULT_CONFIG_FILE  "WaveDumpConfig.txt"  /* local directory */
-#define GNUPLOT_DEFAULT_PATH ".\\"
-#endif
 
 #define OUTFILENAME "wave"  /* The actual file name is wave_n.txt, where n is the channel */
 #define MAX_CH  64          /* max. number of channels */
@@ -66,16 +46,6 @@
 #define MAX_GROUPS  8          /* max. number of groups */
 
 #define MAX_GW  1000        /* max. number of generic write commads */
-
-#define PLOT_REFRESH_TIME 1000
-
-#define VME_INTERRUPT_LEVEL      1
-#define VME_INTERRUPT_STATUS_ID  0xAAAA
-#define INTERRUPT_TIMEOUT        200  // ms
-        
-#define PLOT_WAVEFORMS   0
-#define PLOT_FFT         1
-#define PLOT_HISTOGRAM   2
 
 #define CFGRELOAD_CORRTABLES_BIT (0)
 #define CFGRELOAD_DESMODE_BIT (1)
@@ -104,14 +74,13 @@ public:
     N6740();
     int oldMain();
     void Set_relative_Threshold();
-    void Calibrate_DC_Offset();
     void Calibrate_XX740_DC_Offset();
     int Set_calibrated_DCO(int ch);
 
     int ParseConfigFile(FILE *f_ini);
     int ProgramDigitizer();
     int WriteRegisterBitmask(uint32_t address, uint32_t data, uint32_t mask);
-    int WriteOutputFiles(CAEN_DGTZ_EventInfo_t *EventInfo, void *Event);
+    int WriteOutputFiles();
 
     void Load_DAC_Calibration_From_Flash();
     void Save_DAC_Calibration_To_Flash();
@@ -169,6 +138,8 @@ private:
     // oldmain part
     int  handle = -1;
     CAEN_DGTZ_BoardInfo_t BoardInfo;
+    CAEN_DGTZ_EventInfo_t       EventInfo;
+    CAEN_DGTZ_UINT16_EVENT_t    *Event16=NULL; /* generic event struct with 16 bit data (10, 12, 14 and 16 bit digitizers */
 };
 
 /* new things */
