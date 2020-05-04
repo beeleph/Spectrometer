@@ -14,14 +14,13 @@
 * software, documentation and results solely at his own risk.
 ******************************************************************************/
 
-#ifndef _WAVEDUMP_H_
-#define _WAVEDUMP_H_
+#ifndef _N6740_H_
+#define _N6740_H_
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <cmath>
-//#include <fstream.h>
 #include <CAENDigitizer.h>
 #include <CAENDigitizerType.h>
 #include <QApplication>
@@ -72,21 +71,25 @@ class N6740 : public QObject {
 
 public:
     N6740();
-    int oldMain();
+    int Init();
+    void Run();
+    void Stop();
+    void Loop();
+    void PerformCalibrate();
+    void Exit();
+
+private:
     void Set_relative_Threshold();
     void Calibrate_XX740_DC_Offset();
     int Set_calibrated_DCO(int ch);
-
     int ParseConfigFile(FILE *f_ini);
     int ProgramDigitizer();
     int WriteRegisterBitmask(uint32_t address, uint32_t data, uint32_t mask);
     int WriteOutputFiles();
-
     void Load_DAC_Calibration_From_Flash();
     void Save_DAC_Calibration_To_Flash();
     void SetDefaultConfiguration();
 
-private:
     // wdconfig part
     int LinkType;
     int LinkNum;
@@ -140,6 +143,8 @@ private:
     CAEN_DGTZ_BoardInfo_t BoardInfo;
     CAEN_DGTZ_EventInfo_t       EventInfo;
     CAEN_DGTZ_UINT16_EVENT_t    *Event16=NULL; /* generic event struct with 16 bit data (10, 12, 14 and 16 bit digitizers */
+    uint64_t CurrentTime, PrevRateTime, ElapsedTime;
+    char *readoutBuffer = NULL;
 };
 
 /* new things */

@@ -1,8 +1,5 @@
 /******************************************************************************
 *
-* CAEN SpA - Front End Division
-* Via Vetraia, 11 - 55049 - Viareggio ITALY
-* +390594388398 - www.caen.it
 *
 ***************************************************************************//**
 * \note TERMS OF USE:
@@ -15,34 +12,18 @@
 *
 *  Description:
 *  -----------------------------------------------------------------------------
-*  This is a demo program that can be used with any model of the CAEN's
-*  digitizer family. The purpose of WaveDump is to configure the digitizer,
-*  start the acquisition, read the data and write them into output files
-*  and/or plot the waveforms using 'gnuplot' as an external plotting tool.
-*  The configuration of the digitizer (registers setting) is done by means of
-*  a configuration file that contains a list of parameters.
-*  This program uses the CAENDigitizer library which is then based on the
-*  CAENComm library for the access to the devices through any type of physical
-*  channel (VME, Optical Link, USB, etc...). The CAENComm support the following
-*  communication paths:
-*  PCI => A2818 => OpticalLink => Digitizer (any type)
-*  PCI => V2718 => VME => Digitizer (only VME models)
-*  USB => Digitizer (only Desktop or NIM models)
-*  USB => V1718 => VME => Digitizer (only VME models)
-*  If you have want to sue a VME digitizer with a different VME controller
-*  you must provide the functions of the CAENComm library.
 *
 *  -----------------------------------------------------------------------------
 *  Syntax: WaveDump [ConfigFile]
 *  Default config file is "WaveDumpConfig.txt"
 ******************************************************************************/
 
-#define WaveDump_Release        "3.9.0"
-#define WaveDump_Release_Date   "October 2018"
+#define Spectrometer_Release        "0.0"
+#define Spectrometer_Release_Date   "month 2020"
 #define DBG_TIME
 
 #include <CAENDigitizer.h>
-#include "WaveDump.h"
+#include "N6740.h"
 
 int cal_ok[MAX_CH] = { 0 };
 int dc_file[MAX_CH];
@@ -239,7 +220,7 @@ void N6740::Calibrate_XX740_DC_Offset(){
 	char *EventPtr = NULL;
 	CAEN_DGTZ_UINT16_EVENT_t    *Event16 = NULL;
 
-	float avg_value[NPOINTS][MAX_CH] = { 0 };
+    float avg_value[NPOINTS][MAX_CH] = {{ 0 }};
 	uint32_t dc[NPOINTS] = { 25,75 }; //test values (%)
 	uint32_t groupmask = 0;
 
@@ -301,7 +282,7 @@ void N6740::Calibrate_XX740_DC_Offset(){
 		goto QuitProgram;
 	}
 
-	int value[NACQS][MAX_CH] = { 0 }; //baseline values of the NACQS
+    int value[NACQS][MAX_CH] = {{ 0 }}; //baseline values of the NACQS
 	for (acq = 0; acq < NACQS; acq++) {
 		CAEN_DGTZ_SendSWtrigger(handle);
 
@@ -775,9 +756,10 @@ int N6740::WriteOutputFiles()
 }
 
 /* ########################################################################### */
-/* MAIN                                                                        */
+/*  Init                                                                       */
+//  Opens configuration file, parse, connects, gets info, load DAC, programs the digitizer, allocate event memory.
 /* ########################################################################### */
-int N6740::oldMain()
+int N6740::Init()
 {
     //CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
     int ret = 0;
@@ -861,11 +843,7 @@ int N6740::oldMain()
         //calibrate(handle, &WDrun, BoardInfo);
 
     // mask the channels not available for this model
-    if (BoardInfo.FamilyCode != CAEN_DGTZ_XX740_FAMILY_CODE){
-        EnableMask &= (1<<Nch)-1;
-    } else {
-        EnableMask &= (1<<(Nch/8))-1;
-    }
+    EnableMask &= (1<<(Nch/8))-1;
     /* *************************************************************************************** */
     /* program the digitizer                                                                   */
     /* *************************************************************************************** */
@@ -947,7 +925,6 @@ void N6740::SetDefaultConfiguration() {
     FastTriggerEnabled = 0;
     FPIOtype = CAEN_DGTZ_IOLevel_NIM;
 
-    strcpy(GnuPlotPath, GNUPLOT_DEFAULT_PATH);
     for(i=0; i<MAX_SET; i++) {
         PulsePolarity[i] = CAEN_DGTZ_PulsePolarityPositive;
         Version_used[i] = 0;
@@ -1311,7 +1288,7 @@ int N6740::ParseConfigFile(FILE *f_ini)
                     Version_used[i] = 1;
                     dc_file[i] = dc;
                     if (PulsePolarity[i] == CAEN_DGTZ_PulsePolarityPositive)
-                        DCoffset[i] = (uint32_t)((float)(fabs(dc - 100))*(655.35));
+                        DCoffset[i] = (uint32_t)((float)(abs(dc - 100))*(655.35));
 
                     else if (PulsePolarity[i] == CAEN_DGTZ_PulsePolarityNegative)
                         DCoffset[i] = (uint32_t)((float)(dc)*(655.35));
@@ -1323,7 +1300,7 @@ int N6740::ParseConfigFile(FILE *f_ini)
                 dc_file[ch] = dc;
                 if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
                 {
-                    DCoffset[ch] = (uint32_t)((float)(fabs(dc - 100))*(655.35));
+                    DCoffset[ch] = (uint32_t)((float)(abs(dc - 100))*(655.35));
                     ////printf("ch %d positive, offset %d\n",ch, DCoffset[ch]);
                 }
 
@@ -1532,4 +1509,61 @@ void N6740::Save_DAC_Calibration_To_Flash() {
     free(buffer);
 
     //printf("DAC calibration correctly saved on flash.\n");
+}
+
+void N6740::Run() {
+    PrevRateTime = get_time();
+    Set_relative_Threshold();
+    qDebug() << "Acquisition started\n";
+    CAEN_DGTZ_SWStartAcquisition(handle);
+    //qtimer to perform Loop once in da second.
+    //Loop();
+}
+
+void N6740::Stop() {
+    qDebug() << "Acquisition stopped\n";
+    CAEN_DGTZ_SWStopAcquisition(handle);
+    //qtimer to stop performing Loop.
+}
+
+void N6740::Loop() {
+    // all da things from oldmain that in da loop)
+}
+
+void N6740::PerformCalibrate() {
+    // SHOULD WORK ONLY WHEN ACQUISITION IS STOPPED!!!
+    qDebug() << "Disconnect input signal from all channels and press any key to start.\n";
+    Calibrate_XX740_DC_Offset();
+    int i = 0;
+    CAEN_DGTZ_ErrorCode err;
+    //set new dco values using calibration data
+    for (i = 0; i < BoardInfo.Channels; i++) {
+        if (EnableMask & (1 << i)) {
+            if (Version_used[i] == 1)
+                Set_calibrated_DCO(i);
+            else {
+                err = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)i, DCoffset[i]);
+                if (err)
+                    qDebug() << "Error setting channel %d offset\n" << i;
+            }
+         }
+    }
+    Sleep(200);
+    qDebug() << "DAC calibration ready!!\n";
+}
+
+void N6740::Exit() {
+    /* stop the acquisition */
+    CAEN_DGTZ_SWStopAcquisition(handle);
+
+    /* close the output files and free histograms*/
+    for (int ch = 0; ch < Nch; ch++) {
+        if (fout[ch])
+            fclose(fout[ch]);
+    }
+
+    /* close the device and free the buffers */
+    CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
+    CAEN_DGTZ_FreeReadoutBuffer(&readoutBuffer);
+    CAEN_DGTZ_CloseDigitizer(handle);
 }

@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 
 #include <QApplication>
-#include <WaveDump.h>
+#include <N6740.h>
 
 int main(int argc, char *argv[])
 {
@@ -30,5 +30,14 @@ int main(int argc, char *argv[])
  * calibrate_DC_offset -> -> ,
  *  Зачем Freeevent при рестарте?, Что такое Interrupt? Только для VME?, CAEN_readData, CAEN_GetNumEvents, CAEN_ReadRegister(...,status,...)
  *
+ *  Улучшайзинги:
  *  По-возможности попробовать удалить директивы компилятора.
+ *  Убрать чтение предварительного конфиг файла.
+ *  Переделать парсинг конфиг файла на нормальный. (благо это не трудно)
+ *  Реализовать поддержку двух языков (англ/рус) благо в Qt это делается изи.
+ *
+ *  Кнопочки (Базовые):
+ *  Старт/стоп  (S in CKC)
+ *  Калибровка (D in CKC)
+ *  Выход (q in CKC)
 */

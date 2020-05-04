@@ -16,7 +16,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    WaveDump.cpp \
+    N6740.cpp \
     flash.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -26,7 +26,7 @@ HEADERS += \
     CAENComm.h \
     CAENDigitizer.h \
     CAENDigitizerType.h \
-    WaveDump.h \
+    N6740.h \
     flash.h \
     flash_opcodes.h \
     mainwindow.h \
