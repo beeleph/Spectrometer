@@ -30,46 +30,6 @@ int dc_file[MAX_CH];
 float dc_8file[8];
 int thr_file[MAX_CH] = { 0 };
 
-/* Error messages */
-typedef enum  {
-    ERR_NONE= 0,
-    ERR_CONF_FILE_NOT_FOUND,
-    ERR_DGZ_OPEN,
-    ERR_BOARD_INFO_READ,
-    ERR_INVALID_BOARD_TYPE,
-    ERR_DGZ_PROGRAM,
-    ERR_MALLOC,
-    ERR_RESTART,
-    ERR_INTERRUPT,
-    ERR_READOUT,
-    ERR_EVENT_BUILD,
-    ERR_HISTO_MALLOC,
-    ERR_UNHANDLED_BOARD,
-    ERR_OUTFILE_WRITE,
-	ERR_OVERTEMP,
-
-    ERR_DUMMY_LAST,
-} ERROR_CODES;
-static char ErrMsg[ERR_DUMMY_LAST][100] = {
-    "No Error",                                         /* ERR_NONE */
-    "Configuration File not found",                     /* ERR_CONF_FILE_NOT_FOUND */
-    "Can't open the digitizer",                         /* ERR_DGZ_OPEN */
-    "Can't read the Board Info",                        /* ERR_BOARD_INFO_READ */
-    "Can't run WaveDump for this digitizer",            /* ERR_INVALID_BOARD_TYPE */
-    "Can't program the digitizer",                      /* ERR_DGZ_PROGRAM */
-    "Can't allocate the memory for the readout buffer", /* ERR_MALLOC */
-    "Restarting Error",                                 /* ERR_RESTART */
-    "Interrupt Error",                                  /* ERR_INTERRUPT */
-    "Readout Error",                                    /* ERR_READOUT */
-    "Event Build Error",                                /* ERR_EVENT_BUILD */
-    "Can't allocate the memory fro the histograms",     /* ERR_HISTO_MALLOC */
-    "Unhandled board type",                             /* ERR_UNHANDLED_BOARD */
-    "Output file write error",                          /* ERR_OUTFILE_WRITE */
-	"Over Temperature",									/* ERR_OVERTEMP */
-
-};
-
-
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
 #endif
@@ -1527,7 +1487,94 @@ void N6740::Stop() {
 }
 
 void N6740::Loop() {
-    // all da things from oldmain that in da loop)
+    int ret = 0;
+    /* Send a software trigger .cutted.*/
+
+    /* Wait for interrupt (if enabled) .cutted.*/
+
+    /* Read data from the board */
+    ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, readoutBuffer, &BufferSize);
+    if (ret) {
+        ErrCode = ERR_READOUT;
+        //goto QuitProgram;
+        return;
+    }
+    NumEvents_t = 0;
+    if (BufferSize != 0) {
+        ret = CAEN_DGTZ_GetNumEvents(handle, readoutBuffer, BufferSize, &NumEvents_t);
+        if (ret) {
+            ErrCode = ERR_READOUT;
+            //goto QuitProgram;
+            return;
+        }
+    }
+    else {
+        uint32_t lstatus;
+        ret = CAEN_DGTZ_ReadRegister(handle, CAEN_DGTZ_ACQ_STATUS_ADD, &lstatus);
+        if (ret) {
+            qDebug() << "Warning: Failure reading reg:%x (%d)\n" << CAEN_DGTZ_ACQ_STATUS_ADD << " " << ret;
+        }
+        else {
+            if (lstatus & (0x1 << 19)) {
+                    ErrCode = ERR_OVERTEMP;
+                    //goto QuitProgram;
+                    return;
+            }
+        }
+    }
+//InterruptTimeout:
+    /* Calculate throughput and trigger rate (every second) */
+    Nb += BufferSize;
+    Ne += NumEvents_t;
+    CurrentTime = get_time();
+    ElapsedTime = CurrentTime - PrevRateTime;
+
+    nCycles++;
+    if (ElapsedTime > 1000) {
+        if (Nb == 0)
+            if (ret == CAEN_DGTZ_Timeout)
+                qDebug() << "Timeout...\n";
+            else
+                qDebug() << "No data...\n";
+        else
+            qDebug() << "Reading at " << (float)Nb/((float)ElapsedTime*1048.576f) << " MB/s (Trg Rate):" <<  (float)Ne*1000.0f/(float)ElapsedTime << " Hz)\n";
+        nCycles= 0;
+        Nb = 0;
+        Ne = 0;
+        PrevRateTime = CurrentTime;
+    }
+
+    /* Analyze data */
+    for(int i = 0; i < (int)NumEvents_t; i++) {
+        /* Get one event from the readout buffer */
+        ret = CAEN_DGTZ_GetEventInfo(handle, readoutBuffer, BufferSize, i, &EventInfo, &EventPtr);
+        if (ret) {
+            ErrCode = ERR_EVENT_BUILD;
+            //goto QuitProgram;
+            return;
+        }
+        /* decode the event */
+        ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
+        if (ret) {
+            ErrCode = ERR_EVENT_BUILD;
+            //goto QuitProgram;
+            return;
+        }
+
+        /* Update Histograms .cutted.*/
+
+        /* Write Event data to file */
+        if (true) { // если хотим писать в файл
+            // Note: use a thread here to allow parallel readout and file writing
+            ret = WriteOutputFiles();
+            if (ret) {
+                ErrCode = ERR_OUTFILE_WRITE;
+                //goto QuitProgram;
+                return;
+            }
+            qDebug() << "Single Event saved to output files\n";
+        }
+    }
 }
 
 void N6740::PerformCalibrate() {
