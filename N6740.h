@@ -111,9 +111,10 @@ class N6740 : public QObject {
 public:
     N6740();
     int Init();
+
+public slots:
     void Run();
     void Stop();
-    void Loop();
     void PerformCalibrate();
     void Exit();
 
@@ -128,6 +129,8 @@ private:
     void Load_DAC_Calibration_From_Flash();
     void Save_DAC_Calibration_To_Flash();
     void SetDefaultConfiguration();
+
+    void Loop();
 
     // wdconfig part
     int LinkType;

@@ -727,7 +727,7 @@ int N6740::Init()
     uint32_t AllocatedSize;
     char *buffer = NULL;
     char ConfigFileName[100];
-    int isVMEDevice= 0, MajorNumber;
+    int MajorNumber;
     FILE *f_ini;
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
@@ -750,7 +750,7 @@ int N6740::Init()
     /* *************************************************************************************** */
     /* Open the digitizer and read the board information                                       */
     /* *************************************************************************************** */
-    isVMEDevice = BaseAddress ? 1 : 0;
+    //isVMEDevice = BaseAddress ? 1 : 0;
 
     ret = CAEN_DGTZ_OpenDigitizer(int_to_ConnectionType(LinkType), LinkNum, ConetNode, BaseAddress, &handle);
     if (ret) {
