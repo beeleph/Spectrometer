@@ -15,6 +15,11 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+signals:
+
+private slots:
+    void Say(QString text);
+
 private:
     Ui::MainWindow *ui;
 };

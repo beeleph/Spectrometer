@@ -17,7 +17,7 @@
    <enum>Qt::LeftToRight</enum>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QProgressBar" name="progressBar">
+   <widget class="QProgressBar" name="ch0EnergyBar">
     <property name="geometry">
      <rect>
       <x>60</x>
@@ -61,7 +61,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="configureButton">
     <property name="geometry">
      <rect>
       <x>1110</x>
@@ -79,7 +79,7 @@
      <string>Настройка</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="exitButton">
     <property name="geometry">
      <rect>
       <x>1110</x>
@@ -115,7 +115,7 @@
      <string>Igor Zhironkin FLNP, JINR 2020 jironkin@jinr.ru</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_3">
+   <widget class="QPushButton" name="startstopButton">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -133,7 +133,7 @@
      <string>Запуск</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QPushButton" name="calibrateButton">
     <property name="geometry">
      <rect>
       <x>1110</x>
@@ -267,7 +267,7 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_2">
+   <widget class="QProgressBar" name="ch1EnergyBar">
     <property name="geometry">
      <rect>
       <x>100</x>
@@ -301,7 +301,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_3">
+   <widget class="QProgressBar" name="ch2EnergyBar">
     <property name="geometry">
      <rect>
       <x>140</x>
@@ -335,7 +335,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_4">
+   <widget class="QProgressBar" name="ch3EnergyBar">
     <property name="geometry">
      <rect>
       <x>180</x>
@@ -369,7 +369,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_5">
+   <widget class="QProgressBar" name="ch4EnergyBar">
     <property name="geometry">
      <rect>
       <x>220</x>
@@ -403,7 +403,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_6">
+   <widget class="QProgressBar" name="ch5EnergyBar">
     <property name="geometry">
      <rect>
       <x>260</x>
@@ -437,7 +437,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_7">
+   <widget class="QProgressBar" name="ch6EnergyBar">
     <property name="geometry">
      <rect>
       <x>300</x>
@@ -471,7 +471,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_8">
+   <widget class="QProgressBar" name="ch7EnergyBar">
     <property name="geometry">
      <rect>
       <x>340</x>
@@ -505,7 +505,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_9">
+   <widget class="QProgressBar" name="ch8EnergyBar">
     <property name="geometry">
      <rect>
       <x>380</x>
@@ -539,7 +539,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_10">
+   <widget class="QProgressBar" name="ch9EnergyBar">
     <property name="geometry">
      <rect>
       <x>420</x>
@@ -573,7 +573,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_11">
+   <widget class="QProgressBar" name="ch10EnergyBar">
     <property name="geometry">
      <rect>
       <x>460</x>
@@ -607,7 +607,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_12">
+   <widget class="QProgressBar" name="ch11EnergyBar">
     <property name="geometry">
      <rect>
       <x>500</x>
@@ -641,7 +641,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_13">
+   <widget class="QProgressBar" name="ch12EnergyBar">
     <property name="geometry">
      <rect>
       <x>540</x>
@@ -675,7 +675,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_14">
+   <widget class="QProgressBar" name="ch13EnergyBar">
     <property name="geometry">
      <rect>
       <x>580</x>
@@ -709,7 +709,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_15">
+   <widget class="QProgressBar" name="ch14EnergyBar">
     <property name="geometry">
      <rect>
       <x>620</x>
@@ -743,7 +743,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_16">
+   <widget class="QProgressBar" name="ch15EnergyBar">
     <property name="geometry">
      <rect>
       <x>660</x>
@@ -777,7 +777,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_17">
+   <widget class="QProgressBar" name="ch16EnergyBar">
     <property name="geometry">
      <rect>
       <x>700</x>
@@ -811,7 +811,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_18">
+   <widget class="QProgressBar" name="ch17EnergyBar">
     <property name="geometry">
      <rect>
       <x>740</x>
@@ -845,7 +845,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_19">
+   <widget class="QProgressBar" name="ch18EnergyBar">
     <property name="geometry">
      <rect>
       <x>780</x>
@@ -879,7 +879,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_20">
+   <widget class="QProgressBar" name="ch19EnergyBar">
     <property name="geometry">
      <rect>
       <x>820</x>
@@ -913,7 +913,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_21">
+   <widget class="QProgressBar" name="ch20EnergyBar">
     <property name="geometry">
      <rect>
       <x>860</x>
@@ -947,7 +947,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_22">
+   <widget class="QProgressBar" name="ch21EnergyBar">
     <property name="geometry">
      <rect>
       <x>900</x>
@@ -981,7 +981,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_23">
+   <widget class="QProgressBar" name="ch22EnergyBar">
     <property name="geometry">
      <rect>
       <x>940</x>
@@ -1015,7 +1015,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_24">
+   <widget class="QProgressBar" name="ch23EnergyBar">
     <property name="geometry">
      <rect>
       <x>980</x>
@@ -1049,7 +1049,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_25">
+   <widget class="QProgressBar" name="ch24EnergyBar">
     <property name="geometry">
      <rect>
       <x>1020</x>
@@ -1083,7 +1083,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_26">
+   <widget class="QProgressBar" name="ch25EnergyBar">
     <property name="geometry">
      <rect>
       <x>1060</x>
@@ -1117,7 +1117,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_27">
+   <widget class="QProgressBar" name="ch26EnergyBar">
     <property name="geometry">
      <rect>
       <x>1100</x>
@@ -1151,7 +1151,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_28">
+   <widget class="QProgressBar" name="ch27EnergyBar">
     <property name="geometry">
      <rect>
       <x>1140</x>
@@ -1185,7 +1185,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_29">
+   <widget class="QProgressBar" name="ch28EnergyBar">
     <property name="geometry">
      <rect>
       <x>1180</x>
@@ -1219,7 +1219,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_30">
+   <widget class="QProgressBar" name="ch29EnergyBar">
     <property name="geometry">
      <rect>
       <x>1220</x>
@@ -1253,7 +1253,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_31">
+   <widget class="QProgressBar" name="ch30EnergyBar">
     <property name="geometry">
      <rect>
       <x>1260</x>
@@ -1287,7 +1287,7 @@
      <enum>QProgressBar::BottomToTop</enum>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar_32">
+   <widget class="QProgressBar" name="ch31EnergyBar">
     <property name="geometry">
      <rect>
       <x>1300</x>
@@ -3097,22 +3097,12 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit">
-    <property name="geometry">
-     <rect>
-      <x>560</x>
-      <y>-10</y>
-      <width>251</width>
-      <height>61</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>480</x>
+      <x>520</x>
       <y>-10</y>
-      <width>81</width>
+      <width>31</width>
       <height>61</height>
      </rect>
     </property>
@@ -3122,7 +3112,31 @@
      </font>
     </property>
     <property name="text">
-     <string>I (A)</string>
+     <string>I </string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="brukerCurrent">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>-10</y>
+      <width>131</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>18</pointsize>
+     </font>
+    </property>
+    <property name="suffix">
+     <string>A</string>
+    </property>
+    <property name="maximum">
+     <number>999</number>
+    </property>
+    <property name="value">
+     <number>100</number>
     </property>
    </widget>
   </widget>

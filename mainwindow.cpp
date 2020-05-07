@@ -8,6 +8,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 }
 
+void MainWindow::Say(QString text){
+    ui->debugFrame->append(text);
+}
 MainWindow::~MainWindow()
 {
     delete ui;
