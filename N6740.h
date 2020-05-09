@@ -32,6 +32,7 @@
 #include <sys/timeb.h>
 #include <conio.h>
 #include <process.h>
+#include <algorithm>
 
 #define		_PACKED_            // Какая-то дичь которая сжимает структуры (убирает пропуски необходимые для добора до 32х или 64х бит) чтобы??? чтобы они меньше памяти занимали?
 #define		_INLINE_            // директива для прямой вставки функций в месте их вызова вместо использования скомпилированной и оптимизированной версии.
@@ -112,6 +113,9 @@ public:
     N6740();
     int Init();
 
+signals:
+    void N6740Say(QString text);       // for debug info to show in GUI
+
 public slots:
     void Run();
     void Stop();
@@ -131,6 +135,7 @@ private:
     void SetDefaultConfiguration();
 
     void Loop();
+    void PrepareHistogramUpdate();
 
     // wdconfig part
     int LinkType;
@@ -191,6 +196,9 @@ private:
     ERROR_CODES ErrCode= ERR_NONE;
     int Nb = 0, Ne = 0, nCycles= 0;
     char *EventPtr = NULL;
+
+    //my own
+    //QVector<int> extremum(32);
 
 };
 

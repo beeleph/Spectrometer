@@ -9,7 +9,8 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
     qDebug() << "qDebug (with lower case q) testing. everything is ok, i suppose";
-    N6740 test;
+    N6740 digitizer;
+    QObject::connect(&digitizer, SIGNAL(N6740Say(QString)), &w, SLOT(Say(QString)));
     //test.oldMain(0,0);
 
     return a.exec();
@@ -18,9 +19,12 @@ int main(int argc, char *argv[])
 
 /*  Todo:
  *
+ *  Переписать все кудебаг на Say
  *  Находим и реализуем интегралку
  *  Находим и реализуем нормировку под процент
  *  Поэлементно связываем интерфейс и N6740
+ *  Протестировать работу алгоритма с тестовыми данными
+ *  Проверить чтобы все структуры данных сбрасывали свои значения там где это нужно
  *
  *  Убираем текующую обработку ошибок. Переделаем на try catch.
  *  В первую очередь в Loop()

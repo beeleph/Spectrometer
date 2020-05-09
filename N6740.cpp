@@ -715,6 +715,28 @@ int N6740::WriteOutputFiles()
 
 }
 
+void N6740::PrepareHistogramUpdate() {
+    int extremum[32];               // i believe mr.mingw will initialize my sweet array with zero's.
+    double percentagies[32];
+    int extremumSum = 0;
+    for (int ch = 0; ch < Nch; ch++) {
+        uint32_t Size = Event16->ChSize[ch];
+        if (Size <= 0) {
+            continue;
+        }
+        if ( PulsePolarity[0] == CAEN_DGTZ_PulsePolarityPositive )
+            extremum[ch] = *std::max_element(Event16->DataChannel[ch], Event16->DataChannel[ch] + Size);
+        else
+            extremum[ch] = *std::min_element(Event16->DataChannel[ch], Event16->DataChannel[ch] + Size);
+    }
+    extremumSum = std::accumulate(extremum, extremum + 32, extremumSum);
+    if (extremumSum != 0)
+        for (int ch = 0; ch < Nch; ch++) {
+            percentagies[ch] = (extremum[ch] / extremumSum) * 100;
+            //emit UpdateHistogram(ch, percentagies[ch]);
+        }
+}
+
 /* ########################################################################### */
 /*  Init                                                                       */
 //  Opens configuration file, parse, connects, gets info, load DAC, programs the digitizer, allocate event memory.
