@@ -11,6 +11,12 @@ int main(int argc, char *argv[])
     qDebug() << "qDebug (with lower case q) testing. everything is ok, i suppose";
     N6740 digitizer;
     QObject::connect(&digitizer, SIGNAL(N6740Say(QString)), &w, SLOT(Say(QString)));
+    QObject::connect(&w, SIGNAL(ExitButton()), &digitizer, SLOT(Exit()));
+    QObject::connect(&w, SIGNAL(StartButton()), &digitizer, SLOT(Run()));
+    QObject::connect(&w, SIGNAL(StopButton()), &digitizer, SLOT(Stop()));
+    QObject::connect(&w, SIGNAL(CalibrateButton()), &digitizer, SLOT(PerformCalibrate()));
+    digitizer.Init();
+    //digitizer.test();
     //test.oldMain(0,0);
 
     return a.exec();
@@ -19,12 +25,12 @@ int main(int argc, char *argv[])
 
 /*  Todo:
  *
- *  Переписать все кудебаг на Say
- *  Находим и реализуем интегралку
- *  Находим и реализуем нормировку под процент
  *  Поэлементно связываем интерфейс и N6740
  *  Протестировать работу алгоритма с тестовыми данными
  *  Проверить чтобы все структуры данных сбрасывали свои значения там где это нужно
+ *
+ *  Реализовать установку радиусов ламелей.
+ *  Запретить нажимать какие-либо копки кроме выхода пока не подключиться к оцифровщику
  *
  *  Убираем текующую обработку ошибок. Переделаем на try catch.
  *  В первую очередь в Loop()

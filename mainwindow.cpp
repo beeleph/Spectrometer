@@ -9,10 +9,31 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 void MainWindow::Say(QString text){
-    ui->debugFrame->append(text);
+    CurTime = QTime::currentTime();
+    ui->debugFrame->append(CurTime.toString() + ": " + text);
 }
 MainWindow::~MainWindow()
 {
     delete ui;
 }
 
+
+void MainWindow::on_exitButton_clicked()
+{
+    emit ExitButton();
+    QCoreApplication::exit();
+}
+
+void MainWindow::on_startstopButton_toggled(bool checked)
+{
+    ui->calibrateButton->setEnabled(!checked);
+    if (checked)
+        emit StartButton();
+    else
+        emit StopButton();
+}
+
+void MainWindow::on_calibrateButton_clicked()
+{
+    emit CalibrateButton();
+}

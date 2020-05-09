@@ -121,6 +121,7 @@ public slots:
     void Stop();
     void PerformCalibrate();
     void Exit();
+    void test();
 
 private:
     void Set_relative_Threshold();

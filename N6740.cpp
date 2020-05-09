@@ -2,7 +2,7 @@
 *
 *
 ***************************************************************************//**
-* \note TERMS OF USE:
+* ote TERMS OF USE:
 * This program is free software; you can redistribute it and/or modify it under
 * the terms of the GNU General Public License as published by the Free Software
 * Foundation. This program is distributed in the hope that it will be useful,
@@ -33,8 +33,6 @@ int thr_file[MAX_CH] = { 0 };
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
 #endif
-
-static CAEN_DGTZ_IRQMode_t INTERRUPT_MODE = CAEN_DGTZ_IRQ_MODE_ROAK;
 
 /* ###########################################################################
 *  Functions
@@ -99,7 +97,7 @@ int N6740::ProgramDigitizer()
     /* reset the digitizer */
     ret |= CAEN_DGTZ_Reset(handle);
     if (ret != 0) {
-        qDebug() << "Error: Unable to reset digitizer.\nPlease reset digitizer manually then restart the program\n";
+        emit N6740Say("Error: Unable to reset digitizer.\nPlease reset digitizer manually then restart the program");
         return -1;
     }
 
@@ -150,7 +148,7 @@ int N6740::ProgramDigitizer()
         ret |= WriteRegisterBitmask(GWaddr[i], GWdata[i], GWmask[i]);
 
     if (ret)
-        qDebug() << "Warning: errors found during the programming of the digitizer.\nSome settings may not be executed\n";
+        emit N6740Say("Warning: errors found during the programming of the digitizer.\nSome settings may not be executed");
 
     return 0;
 }
@@ -186,47 +184,49 @@ void N6740::Calibrate_XX740_DC_Offset(){
 
 	ret = CAEN_DGTZ_GetAcquisitionMode(handle, &mem_mode);//chosen value stored
 	if (ret)
-        qDebug() << "Error trying to read acq mode!!\n";
+        emit N6740Say("Error trying to read acq mode!!");
 	ret = CAEN_DGTZ_SetAcquisitionMode(handle, CAEN_DGTZ_SW_CONTROLLED);
 	if (ret)
-        qDebug() << "Error trying to set acq mode!!\n";
+        emit N6740Say("Error trying to set acq mode!!");
 	ret = CAEN_DGTZ_SetExtTriggerInputMode(handle, CAEN_DGTZ_TRGMODE_DISABLED);
 	if (ret)
-        qDebug() << "Error trying to set ext trigger!!\n";
+        emit N6740Say("Error trying to set ext trigger!!");
 	ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle, 1);
 	if (ret)
-        qDebug() << "Warning: error setting max BLT number\n";
+        emit N6740Say("Warning: error setting max BLT number");
 	ret = CAEN_DGTZ_SetDecimationFactor(handle, 1);
 	if (ret)
-        qDebug() << "Error trying to set decimation factor!!\n";
+        emit N6740Say("Error trying to set decimation factor!!");
 	for (g = 0; g< (int32_t)BoardInfo.Channels; g++) //BoardInfo.Channels is number of groups for x740 boards
 		groupmask |= (1 << g);
 	ret = CAEN_DGTZ_SetGroupSelfTrigger(handle, CAEN_DGTZ_TRGMODE_DISABLED, groupmask);
 	if (ret)
-        qDebug() << "Error disabling self trigger\n";
+        emit N6740Say("Error disabling self trigger");
 	ret = CAEN_DGTZ_SetGroupEnableMask(handle, groupmask);
 	if (ret)
-        qDebug() << "Error enabling channel groups.\n";
+        emit N6740Say("Error enabling channel groups.");
 	///malloc
 	ret = CAEN_DGTZ_MallocReadoutBuffer(handle, &buffer, &AllocatedSize);
 	if (ret) {
 		ErrCode = ERR_MALLOC;
-		goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return;
 	}
 
 	ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
 	if (ret != CAEN_DGTZ_Success) {
 		ErrCode = ERR_MALLOC;
-		goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return;
 	}
 
-    qDebug() << "Starting DAC calibration...\n";
+    emit N6740Say("Starting DAC calibration...");
 
 	for (p = 0; p < NPOINTS; p++){
 		for (i = 0; i < (int32_t)BoardInfo.Channels; i++) { //BoardInfo.Channels is number of groups for x740 boards
                 ret = CAEN_DGTZ_SetGroupDCOffset(handle, (uint32_t)i, (uint32_t)((float)(abs((int)dc[p] - 100))*(655.35)));
 				if (ret)
-                    qDebug() << "Error setting group test offset\n" << i;
+                    emit N6740Say("Error setting group test offset" + QString::number(i));
 		}
 	#ifdef _WIN32
 				Sleep(200);
@@ -238,8 +238,9 @@ void N6740::Calibrate_XX740_DC_Offset(){
 
 	ret = CAEN_DGTZ_SWStartAcquisition(handle);
 	if (ret) {
-        qDebug() << "Error starting X740 acquisition\n";
-		goto QuitProgram;
+        emit N6740Say("Error starting X740 acquisition");
+        emit N6740Say(ErrMsg[ErrCode]);
+        return;
 	}
 
     int value[NACQS][MAX_CH] = {{ 0 }}; //baseline values of the NACQS
@@ -249,20 +250,23 @@ void N6740::Calibrate_XX740_DC_Offset(){
 		ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buffer, &BufferSize);
 		if (ret) {
 			ErrCode = ERR_READOUT;
-			goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return;
 		}
 		if (BufferSize == 0)
 			continue;
 		ret = CAEN_DGTZ_GetEventInfo(handle, buffer, BufferSize, 0, &EventInfo, &EventPtr);
 		if (ret) {
 			ErrCode = ERR_EVENT_BUILD;
-			goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return;
 		}
 		// decode the event //
 		ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
 		if (ret) {
 			ErrCode = ERR_EVENT_BUILD;
-			goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return;
 		}
 		for (g = 0; g < (int32_t)BoardInfo.Channels; g++) {
 				for (k = 1; k < 21; k++) //mean over 20 samples
@@ -307,8 +311,8 @@ void N6740::Calibrate_XX740_DC_Offset(){
 	for (g = 0; g < (int32_t)BoardInfo.Channels; g++) {
 			cal[g] = ((float)(avg_value[1][g] - avg_value[0][g]) / (float)(dc[1] - dc[0]));
 			offset[g] = (float)(dc[1] * avg_value[0][g] - dc[0] * avg_value[1][g]) / (float)(dc[1] - dc[0]);
-            qDebug() << "Group DAC calibration ready.\n" << g;
-            qDebug() << "Cal  offset \n" << cal[g] << offset[g];
+            emit N6740Say("Group DAC calibration ready." + QString::number(g));
+            emit N6740Say("Cal  offset " + QString::number(cal[g]) + QString::number(offset[g]));
 
             DAC_Calib.cal[g] = cal[g];
             DAC_Calib.offset[g] = offset[g];
@@ -332,18 +336,9 @@ void N6740::Calibrate_XX740_DC_Offset(){
             ret = CAEN_DGTZ_SetGroupSelfTrigger(handle, ChannelTriggerMode[i], (1 << i));
 	}
 	if (ret)
-        qDebug() << "Error setting recorded parameters\n";
+        emit N6740Say("Error setting recorded parameters");
 
     Save_DAC_Calibration_To_Flash();
-
-QuitProgram:
-		if (ErrCode) {
-            qDebug() <<  ErrMsg[ErrCode];
-#ifdef WIN32
-            qDebug() << "Press a key to quit\n";
-            //getch();
-#endif
-		}
 }
 
 
@@ -365,8 +360,9 @@ void N6740::Set_relative_Threshold(){
 			break;
 		}
 	}
-	if (!should_start)
-		return;
+    if (!should_start){
+        return;
+    }
 
 	CAEN_DGTZ_ErrorCode ret;
 	uint32_t  AllocatedSize;
@@ -389,7 +385,8 @@ void N6740::Set_relative_Threshold(){
 	ret = CAEN_DGTZ_MallocReadoutBuffer(handle, &buffer, &AllocatedSize);
 	if (ret) {
 		ErrCode = ERR_MALLOC;
-		goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return;
 	}
     if (Nbit == 8)
 		ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event8);
@@ -398,13 +395,14 @@ void N6740::Set_relative_Threshold(){
 	}
 	if (ret != CAEN_DGTZ_Success) {
 		ErrCode = ERR_MALLOC;
-		goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return;
 	}
 
 	//some custom settings
 	ret = CAEN_DGTZ_SetPostTriggerSize(handle, custom_posttrg);
 	if (ret) {
-        qDebug() << "Threshold calc failed. Error trying to set post trigger!!\n";
+        emit N6740Say("Threshold calc failed. Error trying to set post trigger!!");
 		return;
 	}
 	//try to set a small threshold to get a self triggered event
@@ -415,7 +413,7 @@ void N6740::Set_relative_Threshold(){
 			else
 				ret = CAEN_DGTZ_GetChannelDCOffset(handle, ch, &dco);
 			if (ret) {
-                qDebug() << "Threshold calc failed. Error trying to get DCoffset values!!\n";
+                emit N6740Say("Threshold calc failed. Error trying to get DCoffset values!!");
 				return;
 			}
 			dco_percent = (float)dco / 65535.;
@@ -428,30 +426,27 @@ void N6740::Set_relative_Threshold(){
 			else
 				ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, custom_thr);
 			if (ret) {
-                qDebug() << "Threshold calc failed. Error trying to set custom threshold value!!\n";
+                emit N6740Say("Threshold calc failed. Error trying to set custom threshold value!!");
 				return;
 			}
 		}
 	}
 
 	CAEN_DGTZ_SWStartAcquisition(handle);
-#ifdef _WIN32
 	Sleep(300);
-#else
-	usleep(300000);
-#endif
-
 	ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buffer, &BufferSize);
 	if (ret) {
 		ErrCode = ERR_READOUT;
-		goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return;
 	}
 	//we have some self-triggered event 
 	if (BufferSize > 0) {
 		ret = CAEN_DGTZ_GetEventInfo(handle, buffer, BufferSize, 0, &EventInfo, &EventPtr);
 		if (ret) {
 			ErrCode = ERR_EVENT_BUILD;
-			goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return;
 		}
 		// decode the event //
         if (Nbit == 8)
@@ -461,7 +456,8 @@ void N6740::Set_relative_Threshold(){
 
 		if (ret) {
 			ErrCode = ERR_EVENT_BUILD;
-			goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return;
 		}
 
 		for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
@@ -500,7 +496,7 @@ void N6740::Set_relative_Threshold(){
 				else
                     ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, Threshold[ch]);
 				if (ret)
-                    qDebug() << "Warning: error setting ch " << ch << " corrected threshold\n";
+                    emit N6740Say("Warning: error setting ch " + QString::number(ch) + " corrected threshold");
 			}
 		}
 	}
@@ -519,7 +515,8 @@ void N6740::Set_relative_Threshold(){
 		ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buffer, &BufferSize);
 		if (ret) {
 			ErrCode = ERR_READOUT;
-			goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return;
 		}
 		if (BufferSize == 0)
 			return;
@@ -527,7 +524,8 @@ void N6740::Set_relative_Threshold(){
 		ret = CAEN_DGTZ_GetEventInfo(handle, buffer, BufferSize, 0, &EventInfo, &EventPtr);
 		if (ret) {
 			ErrCode = ERR_EVENT_BUILD;
-			goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return;
 		}
 		// decode the event //
         if (Nbit == 8)
@@ -537,7 +535,8 @@ void N6740::Set_relative_Threshold(){
 
 		if (ret) {
 			ErrCode = ERR_EVENT_BUILD;
-			goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return;
 		}
 
 		for (ch = 0; ch < (int32_t)BoardInfo.Channels; ch++) {
@@ -571,7 +570,7 @@ void N6740::Set_relative_Threshold(){
 			else
                 ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle, ch, Threshold[ch]);
 			if (ret)
-                    qDebug() << "Warning: error setting ch " << ch << " corrected threshold\n";
+                    emit N6740Say("Warning: error setting ch " + QString::number(ch) + " corrected threshold");
 		}
 	}//end sw trigger event analysis
 
@@ -580,7 +579,7 @@ void N6740::Set_relative_Threshold(){
 	//reset posttrigger
     ret = CAEN_DGTZ_SetPostTriggerSize(handle, PostTrigger);
 	if (ret)
-        qDebug() << "Error resetting post trigger.\n";
+        emit N6740Say("Error resetting post trigger.");
 
 	CAEN_DGTZ_ClearData(handle);
 
@@ -589,16 +588,6 @@ void N6740::Set_relative_Threshold(){
 		CAEN_DGTZ_FreeEvent(handle, (void**)&Event8);
 	else
 		CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
-
-
-QuitProgram:
-	if (ErrCode) {
-        qDebug() << ErrMsg[ErrCode];
-#ifdef WIN32
-        qDebug() << "Press a key to quit\n";
-        //getch();
-#endif
-	}
 }
 
 /*! \fn      void Set_calibrated_DCO(int handle, WaveDumpConfig_t *WDcfg, CAEN_DGTZ_BoardInfo_t BoardInfo)
@@ -625,7 +614,7 @@ int N6740::Set_calibrated_DCO(int ch) {
 
     ret = CAEN_DGTZ_SetGroupDCOffset(handle, (uint32_t)ch, DCoffset[ch]);
     if (ret)
-        qDebug() << "Error setting group " << ch << " offset\n";
+        emit N6740Say("Error setting group " + QString::number(ch) + " offset");
 
 	return ret;
 }
@@ -718,7 +707,7 @@ int N6740::WriteOutputFiles()
 void N6740::PrepareHistogramUpdate() {
     int extremum[32];               // i believe mr.mingw will initialize my sweet array with zero's.
     double percentagies[32];
-    int extremumSum = 0;
+    double extremumSum = 0;        // for propriete divide "/" function (int/double) and it's cheaper than double extremum
     for (int ch = 0; ch < Nch; ch++) {
         uint32_t Size = Event16->ChSize[ch];
         if (Size <= 0) {
@@ -732,7 +721,7 @@ void N6740::PrepareHistogramUpdate() {
     extremumSum = std::accumulate(extremum, extremum + 32, extremumSum);
     if (extremumSum != 0)
         for (int ch = 0; ch < Nch; ch++) {
-            percentagies[ch] = (extremum[ch] / extremumSum) * 100;
+            percentagies[ch] = fabs((extremum[ch] / extremumSum) * 100);
             //emit UpdateHistogram(ch, percentagies[ch]);
         }
 }
@@ -760,11 +749,12 @@ int N6740::Init()
 
     strcpy(ConfigFileName, DEFAULT_CONFIG_FILE);
 
-    qDebug() << "Opening Configuration File" << ConfigFileName;
+    emit N6740Say("Opening Configuration File");
 	f_ini = fopen(ConfigFileName, "r");
 	if (f_ini == NULL) {
 		ErrCode = ERR_CONF_FILE_NOT_FOUND;
-		goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return -1;
 	}
     ParseConfigFile(f_ini);
 	fclose(f_ini);
@@ -777,24 +767,29 @@ int N6740::Init()
     ret = CAEN_DGTZ_OpenDigitizer(int_to_ConnectionType(LinkType), LinkNum, ConetNode, BaseAddress, &handle);
     if (ret) {
         ErrCode = ERR_DGZ_OPEN;
-        goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return -1;
     }
 
     ret = CAEN_DGTZ_GetInfo(handle, &BoardInfo);
     if (ret) {
         ErrCode = ERR_BOARD_INFO_READ;
-        goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return -1;
     }
-    qDebug() << "Connected to CAEN Digitizer Model %s\n" << BoardInfo.ModelName;
-    qDebug() << "ROC FPGA Release is %s\n" << BoardInfo.ROC_FirmwareRel;
-    qDebug() << "AMC FPGA Release is %s\n" << BoardInfo.AMC_FirmwareRel;
-
+    emit N6740Say("Connected to CAEN Digitizer Model ");
+    emit N6740Say(BoardInfo.ModelName);
+    emit N6740Say("ROC FPGA Release is ");
+    emit N6740Say(BoardInfo.ROC_FirmwareRel);
+    emit N6740Say("AMC FPGA Release is ");
+    emit N6740Say(BoardInfo.AMC_FirmwareRel);
     // Check firmware rivision (DPP firmwares cannot be used with WaveDump */
     sscanf(BoardInfo.AMC_FirmwareRel, "%d", &MajorNumber);
     if (MajorNumber >= 128) {
-        qDebug() << "This digitizer has a DPP firmware\n";
+        emit N6740Say("This digitizer has a DPP firmwareemit N6740Say(");
         ErrCode = ERR_INVALID_BOARD_TYPE;
-        goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return -1;
     }
 
 	/* *************************************************************************************** */
@@ -803,11 +798,13 @@ int N6740::Init()
 
 
     strcpy(ConfigFileName, "WaveDumpConfig_X740.txt");
-    qDebug() << "\nWARNING: using configuration file %s specific for Board model X740.\nEdit this file if you want to modify the default settings.\n " << ConfigFileName;
+    emit N6740Say("WARNING: using configuration file specific for Board model X740.\nEdit this file if you want to modify the default settings. ");
+    emit N6740Say(ConfigFileName);
     f_ini = fopen(ConfigFileName, "r");
     if (f_ini == NULL) {
         ErrCode = ERR_CONF_FILE_NOT_FOUND;
-        goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return -1;
     }
     ParseConfigFile(f_ini);
     fclose(f_ini);
@@ -832,7 +829,8 @@ int N6740::Init()
     ret = ProgramDigitizer();
     if (ret) {
         ErrCode = ERR_DGZ_PROGRAM;
-        goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return -1;
     }
 
     // Select the next enabled group for plotting
@@ -843,7 +841,8 @@ int N6740::Init()
         ret = CAEN_DGTZ_GetInfo(handle, &BoardInfo);
         if (ret) {
             ErrCode = ERR_BOARD_INFO_READ;
-            goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
+            return -1;
         }
 
     }
@@ -852,24 +851,16 @@ int N6740::Init()
     ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
     if (ret != CAEN_DGTZ_Success) {
         ErrCode = ERR_MALLOC;
-        goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return -1;
     }
     ret = CAEN_DGTZ_MallocReadoutBuffer(handle, &buffer,&AllocatedSize); /* WARNING: This malloc must be done after the digitizer programming */
     if (ret) {
         ErrCode = ERR_MALLOC;
-        goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
+        return -1;
     }
-
     ErrCode = ERR_NONE;
-
-QuitProgram:
-    if (ErrCode) {
-        qDebug() << ErrMsg[ErrCode];
-#ifdef WIN32
-        qDebug() << "Press a key to quit\n";
-        //getch();
-#endif
-    }
     return 0;
 }
 
@@ -976,14 +967,16 @@ int N6740::ParseConfigFile(FILE *f_ini)
             if (strstr(str, "TR")) {
                 sscanf(str+1, "TR%d", &val);
                  if (val < 0 || val >= MAX_SET) {
-                    //printf("%s: Invalid channel number\n", str);
+                    emit N6740Say(str);
+                    emit N6740Say(": Invalid channel number");
                 } else {
                     tr = val;
                 }
             } else {
                 sscanf(str+1, "%d", &val);
                 if (val < 0 || val >= MAX_SET) {
-                    //printf("%s: Invalid channel number\n", str);
+                    emit N6740Say(str);
+                    emit N6740Say(": Invalid channel number");
                 } else {
                     ch = val;
                 }
@@ -999,7 +992,9 @@ int N6740::ParseConfigFile(FILE *f_ini)
             else if (strcmp(str1, "PCI")==0)
                 LinkType = CAEN_DGTZ_OpticalLink;
             else {
-                //printf("%s %s: Invalid connection type\n", str, str1);
+                emit N6740Say(str);
+                emit N6740Say(str1);
+                emit N6740Say("Invalid connection type");
                 return -1;
             }
             read = fscanf(f_ini, "%d", &LinkNum);
@@ -1053,7 +1048,8 @@ int N6740::ParseConfigFile(FILE *f_ini)
                 pread = fgets(Buf, 1000, f_ini); // Get the remaining line
                 UseManualTables = -1;
                 if(sscanf(ptr, "%s", str1) == 0) {
-                    //printf("Invalid syntax for parameter %s\n", str);
+                    emit N6740Say(str);
+                    emit N6740Say("Invalid syntax for parameter");
                     continue;
                 }
                 if(strcmp(str1, "AUTO") != 0) { // The user wants to use custom correction tables
@@ -1064,7 +1060,8 @@ int N6740::ParseConfigFile(FILE *f_ini)
                         while( ((UseManualTables) & (0x1 << gr)) == 0 && gr < MAX_X742_GROUP_SIZE)
                             gr++;
                         if(gr >= MAX_X742_GROUP_SIZE) {
-                            //printf("Error parsing values for parameter %s\n", str);
+                            emit N6740Say(str);
+                            emit N6740Say("Error parsing values for parameter");
                             continue;
                         }
                         ptr = strstr(ptr, str1);
@@ -1092,8 +1089,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0)
                 TestPattern = 1;
-            else if (strcmp(str1, "NO")!=0)
-                //printf("%s: invalid option\n", str);
+            else if (strcmp(str1, "NO")!=0){
+                emit N6740Say(str);
+                emit N6740Say("Invalid option");
+            }
             continue;
         }
 
@@ -1122,8 +1121,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
                 ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
             else if (strcmp(str1, "ACQUISITION_AND_TRGOUT")==0)
                 ExtTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT;
-            else
-                //printf("%s: Invalid Parameter\n", str);
+            else {
+                emit N6740Say(str);
+                emit N6740Say("Invalid parameter");
+            }
             continue;
         }
 
@@ -1150,8 +1151,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0)
                 DesMode = CAEN_DGTZ_ENABLE;
-            else if (strcmp(str1, "NO")!=0)
-                //printf("%s: invalid option\n", str);
+            else if (strcmp(str1, "NO")!=0){
+                emit N6740Say(str);
+                emit N6740Say("Invalid option");
+            }
             if(PrevDesMode != DesMode)
                 ret |= (0x1 << CFGRELOAD_DESMODE_BIT);
             continue;
@@ -1162,8 +1165,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "BINARY")==0)
                 OutFileFlags = OFF_BINARY;
-            else if (strcmp(str1, "ASCII")!=0)
-                //printf("%s: invalid output file format\n", str1);
+            else if (strcmp(str1, "ASCII")!=0){
+                emit N6740Say(str1);
+                emit N6740Say("Invalid output file format");
+            }
             continue;
         }
 
@@ -1172,8 +1177,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0)
                 OutFileFlags = OFF_HEADER;
-            else if (strcmp(str1, "NO")!=0)
-                //printf("%s: invalid option\n", str);
+            else if (strcmp(str1, "NO")!=0){
+                emit N6740Say(str);
+                emit N6740Say("Invalid option");
+            }
             continue;
         }
 
@@ -1189,8 +1196,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
                 FastTriggerMode = CAEN_DGTZ_TRGMODE_DISABLED;
             else if (strcmp(str1, "ACQUISITION_ONLY")==0)
                 FastTriggerMode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
-            else
-                //printf("%s: Invalid Parameter\n", str);
+            else {
+                emit N6740Say(str);
+                emit N6740Say("Invalid Parameter");
+            }
             continue;
         }
 
@@ -1198,8 +1207,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "YES")==0)
                 FastTriggerEnabled= 1;
-            else if (strcmp(str1, "NO")!=0)
-                //printf("%s: invalid option\n", str);
+            else if (strcmp(str1, "NO")!=0){
+                emit N6740Say(str);
+                emit N6740Say("Invalid option");
+            }
             continue;
         }
      ///Input polarity
@@ -1210,8 +1221,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
                 pp = CAEN_DGTZ_PulsePolarityPositive;
             else if (strcmp(str1, "NEGATIVE") == 0)
                 pp = CAEN_DGTZ_PulsePolarityNegative;
-            else
-                //printf("%s: Invalid Parameter\n", str);
+            else {
+                emit N6740Say(str);
+                emit N6740Say("Invalid parameter");
+            }
 
                 for (i = 0; i<MAX_SET; i++)///polarity setting (old trigger edge)is the same for all channels
                     PulsePolarity[i] = pp;
@@ -1283,6 +1296,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
                 if (PulsePolarity[ch] == CAEN_DGTZ_PulsePolarityPositive)
                 {
                     DCoffset[ch] = (uint32_t)((float)(abs(dc - 100))*(655.35));
+                    //emit N6740Say("ch");
+                    //emit N6740Say(QString::number(ch));
+                    //emit N6740Say("positive, offset:");
+                    //emit N6740Say(QString::number(DCoffset[ch]));
                     ////printf("ch %d positive, offset %d\n",ch, DCoffset[ch]);
                 }
 
@@ -1362,7 +1379,8 @@ int N6740::ParseConfigFile(FILE *f_ini)
             else if (strcmp(str1, "TRGOUT_ONLY") == 0)
                 tm = CAEN_DGTZ_TRGMODE_EXTOUT_ONLY;
             else {
-                //printf("%s: Invalid Parameter\n", str);
+                emit N6740Say(str);
+                emit N6740Say("Invalid parameter");
                 continue;
             }
             if (ch == -1)
@@ -1379,8 +1397,10 @@ int N6740::ParseConfigFile(FILE *f_ini)
             read = fscanf(f_ini, "%s", str1);
             if (strcmp(str1, "TTL")==0)
                 FPIOtype = CAEN_DGTZ_IOLevel_TTL;
-            else if (strcmp(str1, "NIM")!=0)
-                //printf("%s: invalid option\n", str);
+            else if (strcmp(str1, "NIM")!=0){
+                emit N6740Say(str);
+                emit N6740Say("Invalid option");
+            }
             continue;
         }
 
@@ -1402,7 +1422,8 @@ int N6740::ParseConfigFile(FILE *f_ini)
                     EnableMask &= ~(1 << ch);
                 continue;
             } else {
-                //printf("%s: invalid option\n", str);
+                emit N6740Say(str);
+                emit N6740Say("Invalid option");
             }
             continue;
         }
@@ -1416,8 +1437,8 @@ int N6740::ParseConfigFile(FILE *f_ini)
                 StartupCalibration = 1;
             continue;
         }
-
-        //printf("%s: invalid setting\n", str);
+        emit N6740Say(str);
+        emit N6740Say("Invalid settings");
     }
     return ret;
 }
@@ -1430,7 +1451,7 @@ void N6740::Load_DAC_Calibration_From_Flash() {
 
     err = SPIFlash_init(handle);// init flash
     if (err != FLASH_API_SUCCESS) {
-        //printf("Error in flash init\n");
+        emit N6740Say("Error in flash init");
         return;
     }
 
@@ -1439,11 +1460,11 @@ void N6740::Load_DAC_Calibration_From_Flash() {
 
     err = SPIFlash_read_virtual_page(handle, OFFSET_CALIBRATION_VIRTUAL_PAGE, buffer);
     if (err != FLASH_API_SUCCESS) {
-        //printf("Error reading flash page size\n");
+        emit N6740Say("Error reading flash page size");
         return;
     }
     if (buffer[0] != 0xD) {
-        //printf("\nNo DAC Calibration data found in board flash. Use option 'D' to calibrate DAC.\n\n");
+        emit N6740Say("No DAC Calibration data found in board flash. Press calibrate button to calibrate DAC.");
         free(buffer);
         return;
     }
@@ -1456,7 +1477,11 @@ void N6740::Load_DAC_Calibration_From_Flash() {
     }
 
     free(buffer);
-    //printf("\nDAC calibration correctly loaded from board flash.\n");
+    emit N6740Say("DAC calibration correctly loaded from board flash.");
+}
+void N6740::test() {
+    for (int i = 0; i < 40; ++i)
+        emit N6740Say("IM ALIVE!");
 }
 
 void N6740::Save_DAC_Calibration_To_Flash() {
@@ -1472,7 +1497,7 @@ void N6740::Save_DAC_Calibration_To_Flash() {
 
     err = SPIFlash_init(handle);// init flash
     if (err != FLASH_API_SUCCESS) {
-        //printf("Error in flash init.\n");
+        emit N6740Say("Error in flash init.");
         return;
     }
 
@@ -1484,26 +1509,26 @@ void N6740::Save_DAC_Calibration_To_Flash() {
 
     err = SPIFlash_write_virtual_page(handle, OFFSET_CALIBRATION_VIRTUAL_PAGE,buffer);
     if (err != FLASH_API_SUCCESS) {
-        //printf("Error writing flash page\n");
+        emit N6740Say("Error writing flash page");
         return;
     }
 
     free(buffer);
 
-    //printf("DAC calibration correctly saved on flash.\n");
+    emit N6740Say("DAC calibration correctly saved on flash.");
 }
 
 void N6740::Run() {
     PrevRateTime = get_time();
     Set_relative_Threshold();
-    qDebug() << "Acquisition started\n";
+    emit N6740Say("Acquisition started");
     CAEN_DGTZ_SWStartAcquisition(handle);
     //qtimer to perform Loop once in da second.
     //Loop();
 }
 
 void N6740::Stop() {
-    qDebug() << "Acquisition stopped\n";
+    emit N6740Say("Acquisition stopped");
     CAEN_DGTZ_SWStopAcquisition(handle);
     //qtimer to stop performing Loop.
 }
@@ -1518,7 +1543,7 @@ void N6740::Loop() {
     ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, readoutBuffer, &BufferSize);
     if (ret) {
         ErrCode = ERR_READOUT;
-        //goto QuitProgram;
+        emit N6740Say(ErrMsg[ErrCode]);
         return;
     }
     NumEvents_t = 0;
@@ -1526,7 +1551,7 @@ void N6740::Loop() {
         ret = CAEN_DGTZ_GetNumEvents(handle, readoutBuffer, BufferSize, &NumEvents_t);
         if (ret) {
             ErrCode = ERR_READOUT;
-            //goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
             return;
         }
     }
@@ -1534,12 +1559,12 @@ void N6740::Loop() {
         uint32_t lstatus;
         ret = CAEN_DGTZ_ReadRegister(handle, CAEN_DGTZ_ACQ_STATUS_ADD, &lstatus);
         if (ret) {
-            qDebug() << "Warning: Failure reading reg:%x (%d)\n" << CAEN_DGTZ_ACQ_STATUS_ADD << " " << ret;
+            emit N6740Say("Warning: Failure reading reg:" + QString::number(CAEN_DGTZ_ACQ_STATUS_ADD) + " " + QString::number(ret));
         }
         else {
             if (lstatus & (0x1 << 19)) {
                     ErrCode = ERR_OVERTEMP;
-                    //goto QuitProgram;
+                    emit N6740Say(ErrMsg[ErrCode]);
                     return;
             }
         }
@@ -1555,11 +1580,11 @@ void N6740::Loop() {
     if (ElapsedTime > 1000) {
         if (Nb == 0)
             if (ret == CAEN_DGTZ_Timeout)
-                qDebug() << "Timeout...\n";
+                emit N6740Say("Timeout...");
             else
-                qDebug() << "No data...\n";
+                emit N6740Say("No data...");
         else
-            qDebug() << "Reading at " << (float)Nb/((float)ElapsedTime*1048.576f) << " MB/s (Trg Rate):" <<  (float)Ne*1000.0f/(float)ElapsedTime << " Hz)\n";
+            emit N6740Say("Reading at " + QString::number((float)Nb/((float)ElapsedTime*1048.576f)) + " MB/s (Trg Rate):" +  QString::number((float)Ne*1000.0f/(float)ElapsedTime) + " Hz)");
         nCycles= 0;
         Nb = 0;
         Ne = 0;
@@ -1572,14 +1597,14 @@ void N6740::Loop() {
         ret = CAEN_DGTZ_GetEventInfo(handle, readoutBuffer, BufferSize, i, &EventInfo, &EventPtr);
         if (ret) {
             ErrCode = ERR_EVENT_BUILD;
-            //goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
             return;
         }
         /* decode the event */
         ret = CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
         if (ret) {
             ErrCode = ERR_EVENT_BUILD;
-            //goto QuitProgram;
+            emit N6740Say(ErrMsg[ErrCode]);
             return;
         }
 
@@ -1591,17 +1616,17 @@ void N6740::Loop() {
             ret = WriteOutputFiles();
             if (ret) {
                 ErrCode = ERR_OUTFILE_WRITE;
-                //goto QuitProgram;
+                emit N6740Say(ErrMsg[ErrCode]);
                 return;
             }
-            qDebug() << "Single Event saved to output files\n";
+            emit N6740Say("Single Event saved to output files");
         }
     }
 }
 
 void N6740::PerformCalibrate() {
     // SHOULD WORK ONLY WHEN ACQUISITION IS STOPPED!!!
-    qDebug() << "Disconnect input signal from all channels and press any key to start.\n";
+    emit N6740Say("Remember to Disconnect input signal from all channels.");
     Calibrate_XX740_DC_Offset();
     int i = 0;
     CAEN_DGTZ_ErrorCode err;
@@ -1613,12 +1638,12 @@ void N6740::PerformCalibrate() {
             else {
                 err = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)i, DCoffset[i]);
                 if (err)
-                    qDebug() << "Error setting channel %d offset\n" << i;
+                    emit N6740Say("Error setting channel offset" + QString::number(i));
             }
          }
     }
     Sleep(200);
-    qDebug() << "DAC calibration ready!!\n";
+    emit N6740Say("DAC calibration ready!!");
 }
 
 void N6740::Exit() {

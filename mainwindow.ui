@@ -60,6 +60,11 @@
       <height>131</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
    </widget>
    <widget class="QPushButton" name="configureButton">
     <property name="geometry">
@@ -131,6 +136,9 @@
     </property>
     <property name="text">
      <string>Запуск</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="calibrateButton">
