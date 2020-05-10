@@ -37,3 +37,8 @@ void MainWindow::on_calibrateButton_clicked()
 {
     emit CalibrateButton();
 }
+
+void MainWindow::on_brukerCurrent_valueChanged(int arg1)
+{
+    // update energies
+}

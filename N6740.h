@@ -199,7 +199,6 @@ private:
     char *EventPtr = NULL;
 
     //my own
-    //QVector<int> extremum(32);
 
 };
 

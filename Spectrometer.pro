@@ -18,6 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     N6740.cpp \
     flash.cpp \
+    lamelsconfiguration.cpp \
     main.cpp \
     mainwindow.cpp \
     spi.cpp
@@ -29,6 +30,7 @@ HEADERS += \
     N6740.h \
     flash.h \
     flash_opcodes.h \
+    lamelsconfiguration.h \
     mainwindow.h \
     spi.h
 

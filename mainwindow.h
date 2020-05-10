@@ -15,6 +15,7 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void readLamelsRadius();
 
 signals:
     void ExitButton();
@@ -30,6 +31,8 @@ private slots:
     void on_startstopButton_toggled(bool checked);
 
     void on_calibrateButton_clicked();
+
+    void on_brukerCurrent_valueChanged(int arg1);
 
 private:
     QTime CurTime;
