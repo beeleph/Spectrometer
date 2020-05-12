@@ -15,19 +15,20 @@ public:
     int ReadConfig();
 
     double radius[MAXCH];
-    double energies[MAXCH];
-    double brukerCurrent = 1.0;     // in case someday we will be using more precise method
 
 
 signals:
+    void EnergiesChanged(QVector<double> energies);
 
 public slots:
     int ChangeLamelGrouping(int groupCount);
     void ChangeBrukerCurrent(double current);
     void CalculateEnergies();
+
 private:
     int groupBy = 1; // possible inputs: 1, 2, 4, 8;
-
+    double brukerCurrent = 100.0;     // in case someday we will be using more precise method
+    QVector<double> energies;
 };
 
 #endif // LAMELSCONFIGURATION_H

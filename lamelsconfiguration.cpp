@@ -2,10 +2,7 @@
 
 LamelsConfiguration::LamelsConfiguration(QObject *parent) : QObject(parent)
 {
-    for (int i = 0; i < MAXCH; i++){
-        radius[i] = 1.0;    // in case readconfig fails. evade divide by zero error
-    }
-
+    energies.resize(MAXCH);
 }
 
 int LamelsConfiguration::ReadConfig(){
@@ -17,6 +14,7 @@ int LamelsConfiguration::ReadConfig(){
         if (!this->radius[i])
             return -1;
     }
+    CalculateEnergies();
     return 0;
 }
 
@@ -48,11 +46,16 @@ void LamelsConfiguration::ChangeBrukerCurrent(double current){
 }
 
 void LamelsConfiguration::CalculateEnergies(){
+    double sum;
     for (int i = 0; i < MAXCH / groupBy; i++){
-        energies[i] = brukerCurrent / (std::accumulate(radius[i], radius[i] + groupBy, 0.0) / groupBy);
+        sum = 0;
+        for (int j = i * groupBy; j < i * groupBy + groupBy; j++){      // calculating average radius of group
+            sum += radius[j];
+        }
+        energies[i] = brukerCurrent * (sum / groupBy) / 100;
     }
     for (int i = MAXCH / groupBy; i < MAXCH; i++){
         energies[i] = 0.0;
     }
-    // emit updateEnergiesLabels
+    emit EnergiesChanged(energies);
 }

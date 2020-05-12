@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QTime>
+#include <lamelsconfiguration.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -22,9 +23,14 @@ signals:
     void CalibrateButton();
     void StartButton();
     void StopButton();
+    void BrukerCurrentChanged(double current);
+
+public slots:
+    void Say(QString text);
 
 private slots:
-    void Say(QString text);
+
+    void UpdateEnergiesLabels(QVector<double> energies);
 
     void on_exitButton_clicked();
 
@@ -32,7 +38,8 @@ private slots:
 
     void on_calibrateButton_clicked();
 
-    void on_brukerCurrent_valueChanged(int arg1);
+
+    void on_brukerCurrent_valueChanged(double arg1);
 
 private:
     QTime CurTime;

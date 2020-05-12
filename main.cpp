@@ -16,6 +16,14 @@ int main(int argc, char *argv[])
     QObject::connect(&w, SIGNAL(StopButton()), &digitizer, SLOT(Stop()));
     QObject::connect(&w, SIGNAL(CalibrateButton()), &digitizer, SLOT(PerformCalibrate()));
     digitizer.Init();
+    LamelsConfiguration lamConfig;
+    QObject::connect(&lamConfig, SIGNAL(EnergiesChanged(QVector<double>)), &w, SLOT(UpdateEnergiesLabels(QVector<double>)));
+    QObject::connect(&w, SIGNAL(BrukerCurrentChanged(double)), &lamConfig, SLOT(ChangeBrukerCurrent(double)));
+    if (lamConfig.ReadConfig())
+        w.Say("Failed to read lamelsConfig");
+    for (int i = 0; i < 32; i ++){
+        w.Say("r" + QString::number(i) + " = " + QString::number(lamConfig.radius[i]));
+    }
     //digitizer.test();
     //test.oldMain(0,0);
 
