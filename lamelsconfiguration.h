@@ -26,8 +26,8 @@ public slots:
     void CalculateEnergies();
 
 private:
-    int groupBy = 1; // possible inputs: 1, 2, 4, 8;
-    double brukerCurrent = 100.0;     // in case someday we will be using more precise method
+    int groupBy = 1;                    // possible inputs: 1, 2, 4, 8;
+    double brukerCurrent = 100.0;
     QVector<double> energies;
 };
 

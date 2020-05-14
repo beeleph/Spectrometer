@@ -706,7 +706,7 @@ int N6740::WriteOutputFiles()
 
 void N6740::PrepareHistogramUpdate() {
     int extremum[32];               // i believe mr.mingw will initialize my sweet array with zero's.
-    double percentagies[32];
+    QVector<double> percentagies(32);
     double extremumSum = 0;        // for propriete divide "/" function (int/double) and it's cheaper than double extremum
     for (int ch = 0; ch < Nch; ch++) {
         uint32_t Size = Event16->ChSize[ch];
@@ -722,8 +722,8 @@ void N6740::PrepareHistogramUpdate() {
     if (extremumSum != 0)
         for (int ch = 0; ch < Nch; ch++) {
             percentagies[ch] = fabs((extremum[ch] / extremumSum) * 100);
-            //emit UpdateHistogram(ch, percentagies[ch]);
         }
+    emit DataChanged(percentagies);
 }
 
 /* ########################################################################### */
@@ -1480,8 +1480,28 @@ void N6740::Load_DAC_Calibration_From_Flash() {
     emit N6740Say("DAC calibration correctly loaded from board flash.");
 }
 void N6740::test() {
-    for (int i = 0; i < 40; ++i)
-        emit N6740Say("IM ALIVE!");
+    //CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
+    //CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
+    Event16->DataChannel[0][2] = 83;
+    Event16->DataChannel[0][8] = 150;
+    Event16->DataChannel[1][5] = 200;
+    Event16->DataChannel[2][7] = 250;
+    Event16->DataChannel[3][3] = 300;
+    Event16->DataChannel[4][12] = 350;
+    Event16->DataChannel[5][0] = 400;
+    Event16->DataChannel[6][4] = 450;
+    Event16->DataChannel[7][3] = 500;
+    Event16->DataChannel[8][20] = 450;
+    Event16->DataChannel[9][14] = 400;
+    Event16->DataChannel[10][2] = 350;
+    Event16->DataChannel[11][2] = 300;
+    Event16->DataChannel[12][3] = 250;
+    Event16->DataChannel[13][2] = 200;
+    Event16->DataChannel[14][2] = 150;
+    Event16->DataChannel[15][2] = 100;
+    Event16->DataChannel[16][1] = 50;
+    Event16->DataChannel[28][7] = 123;
+    PrepareHistogramUpdate();
 }
 
 void N6740::Save_DAC_Calibration_To_Flash() {

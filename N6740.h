@@ -115,6 +115,7 @@ public:
 
 signals:
     void N6740Say(QString text);       // for debug info to show in GUI
+    void DataChanged(QVector<double>);
 
 public slots:
     void Run();

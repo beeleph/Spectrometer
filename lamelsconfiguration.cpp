@@ -52,7 +52,7 @@ void LamelsConfiguration::CalculateEnergies(){
         for (int j = i * groupBy; j < i * groupBy + groupBy; j++){      // calculating average radius of group
             sum += radius[j];
         }
-        energies[i] = brukerCurrent * (sum / groupBy) / 100;
+        energies[i] = 0.3 * (22.445 * brukerCurrent + 18.766) * (sum / groupBy) / 10;
     }
     for (int i = MAXCH / groupBy; i < MAXCH; i++){
         energies[i] = 0.0;

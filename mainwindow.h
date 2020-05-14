@@ -24,9 +24,11 @@ signals:
     void StartButton();
     void StopButton();
     void BrukerCurrentChanged(double current);
+    void GroupingChanged(int count);
 
 public slots:
     void Say(QString text);
+    void UpdateHistogram(QVector<double> percentagies);
 
 private slots:
 
@@ -40,6 +42,14 @@ private slots:
 
 
     void on_brukerCurrent_valueChanged(double arg1);
+
+    void on_radioButtonOne_clicked();
+
+    void on_radioButtonTwo_clicked();
+
+    void on_radioButtonFour_clicked();
+
+    void on_radioButtonEight_clicked();
 
 private:
     QTime CurTime;

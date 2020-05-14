@@ -79,3 +79,58 @@ void MainWindow::on_brukerCurrent_valueChanged(double arg1)
 {
     emit BrukerCurrentChanged(arg1);
 }
+
+void MainWindow::on_radioButtonOne_clicked()
+{
+    emit GroupingChanged(1);
+}
+
+void MainWindow::on_radioButtonTwo_clicked()
+{
+    emit GroupingChanged(2);
+}
+
+void MainWindow::on_radioButtonFour_clicked()
+{
+    emit GroupingChanged(4);
+}
+
+void MainWindow::on_radioButtonEight_clicked()
+{
+    emit GroupingChanged(8);
+}
+
+void MainWindow::UpdateHistogram(QVector<double> percentagies){
+    ui->ch0EnergyBar->setValue(percentagies[0]);
+    ui->ch1EnergyBar->setValue(percentagies[1]);
+    ui->ch2EnergyBar->setValue(percentagies[2]);
+    ui->ch3EnergyBar->setValue(percentagies[3]);
+    ui->ch4EnergyBar->setValue(percentagies[4]);
+    ui->ch5EnergyBar->setValue(percentagies[5]);
+    ui->ch6EnergyBar->setValue(percentagies[6]);
+    ui->ch7EnergyBar->setValue(percentagies[7]);
+    ui->ch8EnergyBar->setValue(percentagies[8]);
+    ui->ch9EnergyBar->setValue(percentagies[9]);
+    ui->ch10EnergyBar->setValue(percentagies[10]);
+    ui->ch11EnergyBar->setValue(percentagies[11]);
+    ui->ch12EnergyBar->setValue(percentagies[12]);
+    ui->ch13EnergyBar->setValue(percentagies[13]);
+    ui->ch14EnergyBar->setValue(percentagies[14]);
+    ui->ch15EnergyBar->setValue(percentagies[15]);
+    ui->ch16EnergyBar->setValue(percentagies[16]);
+    ui->ch17EnergyBar->setValue(percentagies[17]);
+    ui->ch18EnergyBar->setValue(percentagies[18]);
+    ui->ch19EnergyBar->setValue(percentagies[19]);
+    ui->ch20EnergyBar->setValue(percentagies[20]);
+    ui->ch21EnergyBar->setValue(percentagies[21]);
+    ui->ch22EnergyBar->setValue(percentagies[22]);
+    ui->ch23EnergyBar->setValue(percentagies[23]);
+    ui->ch24EnergyBar->setValue(percentagies[24]);
+    ui->ch25EnergyBar->setValue(percentagies[25]);
+    ui->ch26EnergyBar->setValue(percentagies[26]);
+    ui->ch27EnergyBar->setValue(percentagies[27]);
+    ui->ch28EnergyBar->setValue(percentagies[28]);
+    ui->ch29EnergyBar->setValue(percentagies[29]);
+    ui->ch30EnergyBar->setValue(percentagies[30]);
+    ui->ch31EnergyBar->setValue(percentagies[31]);
+}
