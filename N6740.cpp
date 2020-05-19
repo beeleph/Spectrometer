@@ -700,6 +700,7 @@ int N6740::WriteOutputFiles()
             fout[ch]= NULL;
         }
     }
+    this->writeToFileFlag = FALSE;
     return 0;
 
 }
@@ -740,6 +741,9 @@ int N6740::Init()
     char ConfigFileName[100];
     int MajorNumber;
     FILE *f_ini;
+
+    loopTimer = new QTimer(this);
+    connect(loopTimer, SIGNAL(timeout()), this, SLOT(Loop()));
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
 
@@ -1480,8 +1484,16 @@ void N6740::Load_DAC_Calibration_From_Flash() {
     emit N6740Say("DAC calibration correctly loaded from board flash.");
 }
 void N6740::test() {
-    //CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
+    int ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
+    qDebug() << ret;
     //CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
+//    Event16 = new CAEN_DGTZ_UINT16_EVENT_t;
+    Event16 = (CAEN_DGTZ_UINT16_EVENT_t*)malloc(sizeof Event16);
+    *Event16->DataChannel = (uint16_t*)malloc(320);
+    *Event16->ChSize = (uint32_t)malloc(640);
+    for (int i = 0; i < 32; ++i){
+        Event16->DataChannel[i] = (uint16_t*)malloc(320);
+    }
     Event16->DataChannel[0][2] = 83;
     Event16->DataChannel[0][8] = 150;
     Event16->DataChannel[1][5] = 200;
@@ -1543,14 +1555,13 @@ void N6740::Run() {
     Set_relative_Threshold();
     emit N6740Say("Acquisition started");
     CAEN_DGTZ_SWStartAcquisition(handle);
-    //qtimer to perform Loop once in da second.
-    //Loop();
+    loopTimer->start(1000);
 }
 
 void N6740::Stop() {
     emit N6740Say("Acquisition stopped");
+    loopTimer->stop();
     CAEN_DGTZ_SWStopAcquisition(handle);
-    //qtimer to stop performing Loop.
 }
 
 void N6740::Loop() {
@@ -1631,7 +1642,7 @@ void N6740::Loop() {
         /* Update Histograms .cutted.*/
 
         /* Write Event data to file */
-        if (true) { // если хотим писать в файл
+        if (writeToFileFlag) { // если хотим писать в файл
             // Note: use a thread here to allow parallel readout and file writing
             ret = WriteOutputFiles();
             if (ret) {
@@ -1641,6 +1652,7 @@ void N6740::Loop() {
             }
             emit N6740Say("Single Event saved to output files");
         }
+        PrepareHistogramUpdate();
     }
 }
 
@@ -1680,4 +1692,8 @@ void N6740::Exit() {
     CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
     CAEN_DGTZ_FreeReadoutBuffer(&readoutBuffer);
     CAEN_DGTZ_CloseDigitizer(handle);
+}
+
+void N6740::WriteToFileSlot(){
+    this->writeToFileFlag = TRUE;
 }

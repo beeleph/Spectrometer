@@ -101,6 +101,8 @@ void MainWindow::on_radioButtonEight_clicked()
 }
 
 void MainWindow::UpdateHistogram(QVector<double> percentagies){
+    ui->ch0EnergyBar->setValue(56);
+    ui->debugFrame->append("UpdateHistogram runs");
     ui->ch0EnergyBar->setValue(percentagies[0]);
     ui->ch1EnergyBar->setValue(percentagies[1]);
     ui->ch2EnergyBar->setValue(percentagies[2]);
@@ -133,4 +135,9 @@ void MainWindow::UpdateHistogram(QVector<double> percentagies){
     ui->ch29EnergyBar->setValue(percentagies[29]);
     ui->ch30EnergyBar->setValue(percentagies[30]);
     ui->ch31EnergyBar->setValue(percentagies[31]);
+}
+
+void MainWindow::on_writeToFileButton_clicked()
+{
+    emit WriteToFileButton();
 }

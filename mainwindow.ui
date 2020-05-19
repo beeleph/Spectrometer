@@ -3099,7 +3099,7 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>610</x>
+      <x>420</x>
       <y>-10</y>
       <width>31</width>
       <height>61</height>
@@ -3117,7 +3117,7 @@
    <widget class="QDoubleSpinBox" name="brukerCurrent">
     <property name="geometry">
      <rect>
-      <x>650</x>
+      <x>460</x>
       <y>-10</y>
       <width>131</width>
       <height>61</height>
@@ -3141,7 +3141,7 @@
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>910</x>
+      <x>610</x>
       <y>-10</y>
       <width>191</width>
       <height>51</height>
@@ -3159,7 +3159,7 @@
    <widget class="QRadioButton" name="radioButtonOne">
     <property name="geometry">
      <rect>
-      <x>1120</x>
+      <x>820</x>
       <y>-10</y>
       <width>61</width>
       <height>61</height>
@@ -3186,7 +3186,7 @@
    <widget class="QRadioButton" name="radioButtonTwo">
     <property name="geometry">
      <rect>
-      <x>1180</x>
+      <x>880</x>
       <y>-10</y>
       <width>61</width>
       <height>61</height>
@@ -3213,7 +3213,7 @@
    <widget class="QRadioButton" name="radioButtonFour">
     <property name="geometry">
      <rect>
-      <x>1240</x>
+      <x>940</x>
       <y>-10</y>
       <width>61</width>
       <height>61</height>
@@ -3240,7 +3240,7 @@
    <widget class="QRadioButton" name="radioButtonEight">
     <property name="geometry">
      <rect>
-      <x>1300</x>
+      <x>1000</x>
       <y>-10</y>
       <width>61</width>
       <height>61</height>
@@ -3262,6 +3262,24 @@
     </property>
     <property name="checked">
      <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="writeToFileButton">
+    <property name="geometry">
+     <rect>
+      <x>1090</x>
+      <y>-10</y>
+      <width>251</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>18</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Запись в файл</string>
     </property>
    </widget>
   </widget>

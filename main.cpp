@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, SIGNAL(StopButton()), &digitizer, SLOT(Stop()));
     QObject::connect(&w, SIGNAL(CalibrateButton()), &digitizer, SLOT(PerformCalibrate()));
     QObject::connect(&digitizer, SIGNAL(DataChanged(QVector<double>)), &w, SLOT(UpdateHistogram(QVector<double>)));
+    QObject::connect(&w, SIGNAL(WriteToFileButton()), &digitizer, SLOT(WriteToFileSlot()));
     digitizer.Init();
     //digitizer.test();
     LamelsConfiguration lamConfig;
@@ -23,11 +24,9 @@ int main(int argc, char *argv[])
     QObject::connect(&w, SIGNAL(GroupingChanged(int)), &lamConfig, SLOT(ChangeLamelGrouping(int)));
     if (lamConfig.ReadConfig())
         w.Say("Failed to read lamelsConfig");
-    for (int i = 0; i < 32; i ++){
-        w.Say("r" + QString::number(i) + " = " + QString::number(lamConfig.radius[i]));
-    }
-    //digitizer.test();
-    //test.oldMain(0,0);
+    //QVector<double> z(32);
+    //z.fill(75.0);
+    //w.UpdateHistogram(z);
 
     return a.exec();
 }
@@ -35,11 +34,9 @@ int main(int argc, char *argv[])
 
 /*  Todo:
  *
- *  Протестировать работу алгоритма с тестовыми данными
  *  Проверить чтобы все структуры данных сбрасывали свои значения там где это нужно
  *  Придумать условия записи в файл. Всегда писать не надо.
- *  Подумать над инициализацией всех переменных на интерфейсе
- *  Тестирование в кьют? альт8?
+ *  Подумать над инициализацией всех переменных на интерфейсе (Только МЭВ?)
  *
  *  Запретить нажимать какие-либо копки кроме выхода пока не подключиться к оцифровщику
  *
@@ -54,5 +51,4 @@ int main(int argc, char *argv[])
  *  Отрефакторить родные определения/инициализации переменных. Они вызывают вопросы. Особенно в Loop()
  *  Выделить в отдельный класс конфиг, таймер, еще чо-нить
  *
- *  Вывод графика распределения энергии пучка
 */

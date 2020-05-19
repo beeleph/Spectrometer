@@ -25,6 +25,7 @@ signals:
     void StopButton();
     void BrukerCurrentChanged(double current);
     void GroupingChanged(int count);
+    void WriteToFileButton();
 
 public slots:
     void Say(QString text);
@@ -50,6 +51,8 @@ private slots:
     void on_radioButtonFour_clicked();
 
     void on_radioButtonEight_clicked();
+
+    void on_writeToFileButton_clicked();
 
 private:
     QTime CurTime;

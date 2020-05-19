@@ -25,6 +25,7 @@
 #include <CAENDigitizerType.h>
 #include <QApplication>
 #include <QDebug>
+#include <QTimer>
 #include <flash.h>
 
 
@@ -123,6 +124,8 @@ public slots:
     void PerformCalibrate();
     void Exit();
     void test();
+    void Loop();
+    void WriteToFileSlot();
 
 private:
     void Set_relative_Threshold();
@@ -135,8 +138,6 @@ private:
     void Load_DAC_Calibration_From_Flash();
     void Save_DAC_Calibration_To_Flash();
     void SetDefaultConfiguration();
-
-    void Loop();
     void PrepareHistogramUpdate();
 
     // wdconfig part
@@ -200,6 +201,8 @@ private:
     char *EventPtr = NULL;
 
     //my own
+    QTimer *loopTimer;
+    bool writeToFileFlag = FALSE;
 
 };
 
