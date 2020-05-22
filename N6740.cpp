@@ -1602,25 +1602,16 @@ void N6740::Loop() {
     }
 //InterruptTimeout:
     /* Calculate throughput and trigger rate (every second) */
-    Nb += BufferSize;
-    Ne += NumEvents_t;
     CurrentTime = get_time();
     ElapsedTime = CurrentTime - PrevRateTime;
-
-    nCycles++;
-    if (ElapsedTime > 1000) {
-        if (Nb == 0)
-            if (ret == CAEN_DGTZ_Timeout)
-                emit N6740Say("Timeout...");
-            else
-                emit N6740Say("No data...");
+    if (BufferSize == 0)
+        if (ret == CAEN_DGTZ_Timeout)
+            emit N6740Say("Timeout...");
         else
-            emit N6740Say("Reading at " + QString::number((float)Nb/((float)ElapsedTime*1048.576f)) + " MB/s (Trg Rate):" +  QString::number((float)Ne*1000.0f/(float)ElapsedTime) + " Hz)");
-        nCycles= 0;
-        Nb = 0;
-        Ne = 0;
-        PrevRateTime = CurrentTime;
-    }
+            emit N6740Say("No data...");
+    else
+        emit N6740Say("Reading at " + QString::number((float)BufferSize/((float)ElapsedTime*1048.576f)) + " MB/s (Trg Rate):" +  QString::number((float)NumEvents_t*1000.0f/(float)ElapsedTime) + " Hz)");
+    PrevRateTime = CurrentTime;
 
     /* Analyze data */
     for(int i = 0; i < (int)NumEvents_t; i++) {

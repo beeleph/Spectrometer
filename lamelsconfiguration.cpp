@@ -42,7 +42,6 @@ int LamelsConfiguration::ChangeLamelGrouping(int groupCount){
 void LamelsConfiguration::ChangeBrukerCurrent(double current){
     brukerCurrent = current;
     CalculateEnergies();
-    return;
 }
 
 void LamelsConfiguration::CalculateEnergies(){

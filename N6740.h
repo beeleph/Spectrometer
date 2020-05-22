@@ -123,7 +123,7 @@ public slots:
     void Stop();
     void PerformCalibrate();
     void Exit();
-    void test();
+    void test();                // remove later on
     void Loop();
     void WriteToFileSlot();
 
@@ -197,7 +197,6 @@ private:
     char *readoutBuffer = NULL;
     uint32_t BufferSize, NumEvents_t;
     ERROR_CODES ErrCode= ERR_NONE;
-    int Nb = 0, Ne = 0, nCycles= 0;
     char *EventPtr = NULL;
 
     //my own

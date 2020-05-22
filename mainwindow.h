@@ -16,7 +16,6 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    void readLamelsRadius();
 
 signals:
     void ExitButton();
@@ -56,6 +55,9 @@ private slots:
 
 private:
     QTime CurTime;
+
+    void ClearGui();
+
     Ui::MainWindow *ui;
 };
 #endif // MAINWINDOW_H

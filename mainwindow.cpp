@@ -6,6 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    ClearGui();
 }
 
 void MainWindow::Say(QString text){
@@ -72,7 +73,6 @@ void MainWindow::UpdateEnergiesLabels(QVector<double> energies){
     ui->ch29EnergyLabel->setText(QString::number(energies[29], 'f', 0));
     ui->ch30EnergyLabel->setText(QString::number(energies[30], 'f', 0));
     ui->ch31EnergyLabel->setText(QString::number(energies[31], 'f', 0));
-    //turn off else
 }
 
 void MainWindow::on_brukerCurrent_valueChanged(double arg1)
@@ -101,8 +101,6 @@ void MainWindow::on_radioButtonEight_clicked()
 }
 
 void MainWindow::UpdateHistogram(QVector<double> percentagies){
-    ui->ch0EnergyBar->setValue(56);
-    ui->debugFrame->append("UpdateHistogram runs");
     ui->ch0EnergyBar->setValue(percentagies[0]);
     ui->ch1EnergyBar->setValue(percentagies[1]);
     ui->ch2EnergyBar->setValue(percentagies[2]);
@@ -140,4 +138,76 @@ void MainWindow::UpdateHistogram(QVector<double> percentagies){
 void MainWindow::on_writeToFileButton_clicked()
 {
     emit WriteToFileButton();
+}
+
+void MainWindow::ClearGui(){
+    ui->brukerCurrent->setValue(100);
+    ui->radioButtonOne->setChecked(true);
+    ui->radioButtonTwo->setChecked(false);
+    ui->radioButtonFour->setChecked(false);
+    ui->radioButtonEight->setChecked(false);
+    ui->ch0EnergyBar->setValue(0);
+    ui->ch1EnergyBar->setValue(0);
+    ui->ch2EnergyBar->setValue(0);
+    ui->ch3EnergyBar->setValue(0);
+    ui->ch4EnergyBar->setValue(0);
+    ui->ch5EnergyBar->setValue(0);
+    ui->ch6EnergyBar->setValue(0);
+    ui->ch7EnergyBar->setValue(0);
+    ui->ch8EnergyBar->setValue(0);
+    ui->ch9EnergyBar->setValue(0);
+    ui->ch10EnergyBar->setValue(0);
+    ui->ch11EnergyBar->setValue(0);
+    ui->ch12EnergyBar->setValue(0);
+    ui->ch13EnergyBar->setValue(0);
+    ui->ch14EnergyBar->setValue(0);
+    ui->ch15EnergyBar->setValue(0);
+    ui->ch16EnergyBar->setValue(0);
+    ui->ch17EnergyBar->setValue(0);
+    ui->ch18EnergyBar->setValue(0);
+    ui->ch19EnergyBar->setValue(0);
+    ui->ch20EnergyBar->setValue(0);
+    ui->ch21EnergyBar->setValue(0);
+    ui->ch22EnergyBar->setValue(0);
+    ui->ch23EnergyBar->setValue(0);
+    ui->ch24EnergyBar->setValue(0);
+    ui->ch25EnergyBar->setValue(0);
+    ui->ch26EnergyBar->setValue(0);
+    ui->ch27EnergyBar->setValue(0);
+    ui->ch28EnergyBar->setValue(0);
+    ui->ch29EnergyBar->setValue(0);
+    ui->ch30EnergyBar->setValue(0);
+    ui->ch31EnergyBar->setValue(0);
+    ui->ch0EnergyLabel->setText("0");
+    ui->ch1EnergyLabel->setText("0");
+    ui->ch2EnergyLabel->setText("0");
+    ui->ch3EnergyLabel->setText("0");
+    ui->ch4EnergyLabel->setText("0");
+    ui->ch5EnergyLabel->setText("0");
+    ui->ch6EnergyLabel->setText("0");
+    ui->ch7EnergyLabel->setText("0");
+    ui->ch8EnergyLabel->setText("0");
+    ui->ch9EnergyLabel->setText("0");
+    ui->ch10EnergyLabel->setText("0");
+    ui->ch11EnergyLabel->setText("0");
+    ui->ch12EnergyLabel->setText("0");
+    ui->ch13EnergyLabel->setText("0");
+    ui->ch14EnergyLabel->setText("0");
+    ui->ch15EnergyLabel->setText("0");
+    ui->ch16EnergyLabel->setText("0");
+    ui->ch17EnergyLabel->setText("0");
+    ui->ch18EnergyLabel->setText("0");
+    ui->ch19EnergyLabel->setText("0");
+    ui->ch20EnergyLabel->setText("0");
+    ui->ch21EnergyLabel->setText("0");
+    ui->ch22EnergyLabel->setText("0");
+    ui->ch23EnergyLabel->setText("0");
+    ui->ch24EnergyLabel->setText("0");
+    ui->ch25EnergyLabel->setText("0");
+    ui->ch26EnergyLabel->setText("0");
+    ui->ch27EnergyLabel->setText("0");
+    ui->ch28EnergyLabel->setText("0");
+    ui->ch29EnergyLabel->setText("0");
+    ui->ch30EnergyLabel->setText("0");
+    ui->ch31EnergyLabel->setText("0");
 }
