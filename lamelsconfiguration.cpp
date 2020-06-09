@@ -6,6 +6,7 @@ LamelsConfiguration::LamelsConfiguration(QObject *parent) : QObject(parent)
 }
 
 int LamelsConfiguration::ReadConfig(){
+    qDebug() << " MAXCH = " << MAXCH;
     QSettings *settings;
     QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, ".");
     settings = new QSettings("LamelsRadius.ini", QSettings::IniFormat);

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QSettings>
+#include <QDebug>
 
 #define MAXCH 32    // max number of channels
 

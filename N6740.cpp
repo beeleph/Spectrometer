@@ -737,7 +737,6 @@ int N6740::Init()
     int ret = 0;
     ERROR_CODES ErrCode= ERR_NONE;
     uint32_t AllocatedSize;
-    char *buffer = NULL;
     char ConfigFileName[100];
     int MajorNumber;
     FILE *f_ini;
@@ -858,7 +857,7 @@ int N6740::Init()
         emit N6740Say(ErrMsg[ErrCode]);
         return -1;
     }
-    ret = CAEN_DGTZ_MallocReadoutBuffer(handle, &buffer,&AllocatedSize); /* WARNING: This malloc must be done after the digitizer programming */
+    ret = CAEN_DGTZ_MallocReadoutBuffer(handle, &readoutBuffer,&AllocatedSize); /* WARNING: This malloc must be done after the digitizer programming */
     if (ret) {
         ErrCode = ERR_MALLOC;
         emit N6740Say(ErrMsg[ErrCode]);
@@ -1573,6 +1572,7 @@ void N6740::Loop() {
     /* Read data from the board */
     ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, readoutBuffer, &BufferSize);
     if (ret) {
+        emit N6740Say("We fucked here");
         ErrCode = ERR_READOUT;
         emit N6740Say(ErrMsg[ErrCode]);
         return;
