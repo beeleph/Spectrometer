@@ -24,7 +24,7 @@ signals:
     void StopButton();
     void BrukerCurrentChanged(double current);
     void GroupingChanged(int count);
-    void WriteToFileButton();
+    void WriteToFileButton(double current);
 
 public slots:
     void Say(QString text);

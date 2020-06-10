@@ -141,7 +141,7 @@ void MainWindow::UpdateHistogram(QVector<double> percentagies){
 
 void MainWindow::on_writeToFileButton_clicked()
 {
-    emit WriteToFileButton();
+    emit WriteToFileButton(ui->brukerCurrent->value());
 }
 
 void MainWindow::ClearGui(){

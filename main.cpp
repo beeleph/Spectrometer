@@ -15,11 +15,12 @@ int main(int argc, char *argv[])
     QObject::connect(&w, SIGNAL(StopButton()), &digitizer, SLOT(Stop()));
     QObject::connect(&w, SIGNAL(CalibrateButton()), &digitizer, SLOT(PerformCalibrate()));
     QObject::connect(&digitizer, SIGNAL(DataChanged(QVector<double>)), &w, SLOT(UpdateHistogram(QVector<double>)));
-    QObject::connect(&w, SIGNAL(WriteToFileButton()), &digitizer, SLOT(WriteToFileSlot()));
+    QObject::connect(&w, SIGNAL(WriteToFileButton(double)), &digitizer, SLOT(WriteOutputFiles(double))); // HERE
     digitizer.Init();
     //digitizer.test();
     LamelsConfiguration lamConfig;
     QObject::connect(&lamConfig, SIGNAL(EnergiesChanged(QVector<double>)), &w, SLOT(UpdateEnergiesLabels(QVector<double>)));
+    QObject::connect(&lamConfig, SIGNAL(EnergiesChanged(QVector<double>)), &digitizer, SLOT(UpdateEnergies(QVector<double>)));
     QObject::connect(&w, SIGNAL(BrukerCurrentChanged(double)), &lamConfig, SLOT(ChangeBrukerCurrent(double)));
     QObject::connect(&w, SIGNAL(GroupingChanged(int)), &lamConfig, SLOT(ChangeLamelGrouping(int)));
     if (lamConfig.ReadConfig())

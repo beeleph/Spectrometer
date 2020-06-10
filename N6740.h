@@ -26,6 +26,8 @@
 #include <QApplication>
 #include <QDebug>
 #include <QTimer>
+#include <QFile>
+#include <QDate>
 #include <flash.h>
 
 
@@ -41,7 +43,6 @@
 
 #define DEFAULT_CONFIG_FILE  "WaveDumpConfig.txt"  /* local directory */
 
-#define OUTFILENAME "wave"  /* The actual file name is wave_n.txt, where n is the channel */
 #define MAX_CH  64          /* max. number of channels */
 #define MAX_SET 16           /* max. number of independent settings */
 #define MAX_GROUPS  8          /* max. number of groups */
@@ -124,7 +125,8 @@ public slots:
     void PerformCalibrate();
     void Exit();
     void Loop();
-    void WriteToFileSlot();
+    void WriteOutputFiles(double current); // change
+    void UpdateEnergies(QVector<double> energies);
 
 private:
     void Set_relative_Threshold();
@@ -133,7 +135,6 @@ private:
     int ParseConfigFile(FILE *f_ini);
     int ProgramDigitizer();
     int WriteRegisterBitmask(uint32_t address, uint32_t data, uint32_t mask);
-    int WriteOutputFiles();
     void Load_DAC_Calibration_From_Flash();
     void Save_DAC_Calibration_To_Flash();
     void SetDefaultConfiguration();
@@ -185,7 +186,6 @@ private:
     DAC_Calibration_data DAC_Calib;
 
     // wdrun part
-    FILE *fout[MAX_CH];
 
     // oldmain part
     int  handle = -1;
@@ -200,7 +200,9 @@ private:
 
     //my own
     QTimer *loopTimer;
-    bool writeToFileFlag = FALSE;
+    int extremum[32];               // i believe mr.mingw will initialize my sweet array with zero's.
+    QVector<double> percentagies;
+    QVector<double> energies;
 
 };
 

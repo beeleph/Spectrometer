@@ -627,87 +627,31 @@ int N6740::Set_calibrated_DCO(int ch) {
 *   \param   EventInfo Pointer to the EventInfo data structure
 *   \param   Event Pointer to the Event to write
 */
-int N6740::WriteOutputFiles()
+void N6740::WriteOutputFiles(double current)
 {
-    int ch, j, ns;
-    //CAEN_DGTZ_UINT16_EVENT_t  *Event16 = NULL;
-    //CAEN_DGTZ_UINT8_EVENT_t   *Event8 = NULL;
-
-    //Event16 = (CAEN_DGTZ_UINT16_EVENT_t *)Event;
-
-    for (ch = 0; ch < Nch; ch++) {
-        int Size = Event16->ChSize[ch];
-        if (Size <= 0) {
-            continue;
+    QDateTime dateTime = QDateTime::currentDateTime();
+    QFile report("./reports/" + dateTime.date().toString(Qt::ISODate) + "_" + dateTime.time().toString("hh-mm-ss") + ".txt");
+    if (report.open(QIODevice::WriteOnly | QIODevice::Text)){
+        QTextStream stream(&report);
+        stream << dateTime.toString() << endl;
+        stream << "Ibruker = " << current << endl;
+        stream << "Ch#   MeV   Percent   Extremum" << endl;
+        for (int i = 0; i < 32; ++i){
+            stream << i << "   " << energies[i] << "   " << percentagies[i] << "   " << extremum[i] << endl;
         }
-
-        // Check the file format type
-        if( OutFileFlags& OFF_BINARY) {
-            // Binary file format
-            uint32_t BinHeader[6];
-            BinHeader[0] = (Nbit == 8) ? Size + 6*sizeof(*BinHeader) : Size*2 + 6*sizeof(*BinHeader);
-            BinHeader[1] = EventInfo.BoardId;
-            BinHeader[2] = EventInfo.Pattern;
-            BinHeader[3] = ch;
-            BinHeader[4] = EventInfo.EventCounter;
-            BinHeader[5] = EventInfo.TriggerTimeTag;
-            if (!fout[ch]) {
-                char fname[100];
-                sprintf(fname, "wave%d.dat", ch);
-                if ((fout[ch] = fopen(fname, "wb")) == NULL)
-                    return -1;
-            }
-            if( OutFileFlags & OFF_HEADER) {
-                // Write the Channel Header
-                if(fwrite(BinHeader, sizeof(*BinHeader), 6, fout[ch]) != 6) {
-                    // error writing to file
-                    fclose(fout[ch]);
-                    fout[ch]= NULL;
-                    return -1;
-                }
-            }
-            ns = (int)fwrite(Event16->DataChannel[ch] , 1 , Size*2, fout[ch]) / 2;
-            if (ns != Size) {
-                // error writing to file
-                fclose(fout[ch]);
-                fout[ch]= NULL;
-                return -1;
-            }
-        } else {
-            // Ascii file format
-            if (!fout[ch]) {
-                char fname[100];
-                sprintf(fname, "wave%d.txt", ch);
-                if ((fout[ch] = fopen(fname, "w")) == NULL)
-                    return -1;
-            }
-            if( OutFileFlags & OFF_HEADER) {
-                // Write the Channel Header
-                fprintf(fout[ch], "Record Length: %d\n", Size);
-                fprintf(fout[ch], "BoardID: %2d\n", EventInfo.BoardId);
-                fprintf(fout[ch], "Channel: %d\n", ch);
-                fprintf(fout[ch], "Event Number: %d\n", EventInfo.EventCounter);
-                fprintf(fout[ch], "Pattern: 0x%04X\n", EventInfo.Pattern & 0xFFFF);
-                fprintf(fout[ch], "Trigger Time Stamp: %u\n", EventInfo.TriggerTimeTag);
-                fprintf(fout[ch], "DC offset (DAC): 0x%04X\n", DCoffset[ch] & 0xFFFF);
-            }
-            for(j=0; j<Size; j++) {
-                 fprintf(fout[ch], "%d\n", Event16->DataChannel[ch][j]);
-            }
-        }
-        if (true) {           // WDrun->SingleWrite
-            fclose(fout[ch]);
-            fout[ch]= NULL;
-        }
+        report.close();
+        emit N6740Say("Report successfully writed");
     }
-    this->writeToFileFlag = FALSE;
-    return 0;
-
+    else{
+        emit N6740Say("Failed to write report");
+    }
 }
 
 void N6740::PrepareHistogramUpdate() {
-    int extremum[32];               // i believe mr.mingw will initialize my sweet array with zero's.
-    QVector<double> percentagies(32);
+    for (int i = 0; i < 32; ++i){
+        extremum[i] = 0;
+    }
+    percentagies.fill(0);
     double extremumSum = 0;        // for propriete divide "/" function (int/double) and it's cheaper than double extremum
     for (int ch = 0; ch < Nch; ch++) {
         uint32_t Size = Event16->ChSize[ch];
@@ -716,13 +660,11 @@ void N6740::PrepareHistogramUpdate() {
         }
         if ( PulsePolarity[0] == CAEN_DGTZ_PulsePolarityPositive ){
             extremum[ch] = *std::max_element(Event16->DataChannel[ch], Event16->DataChannel[ch] + Size);
-            emit N6740Say("Extremum " + QString::number(ch) + " = " + QString::number(extremum[ch]));
         }
         else
             extremum[ch] = *std::min_element(Event16->DataChannel[ch], Event16->DataChannel[ch] + Size);
     }
     extremumSum = std::accumulate(extremum, extremum + 32, extremumSum);
-    emit N6740Say("ExtremumSum = " + QString::number(extremumSum));
     if (extremumSum != 0)
         for (int ch = 0; ch < Nch; ch++) {
             percentagies[ch] = fabs((extremum[ch] / extremumSum) * 100);
@@ -743,9 +685,10 @@ int N6740::Init()
     char ConfigFileName[100];
     int MajorNumber;
     FILE *f_ini;
-
     loopTimer = new QTimer(this);
     connect(loopTimer, SIGNAL(timeout()), this, SLOT(Loop()));
+    percentagies.resize(32);
+    energies.resize(32);
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
 
@@ -1543,7 +1486,6 @@ void N6740::Loop() {
     /* Read data from the board */
     ret = CAEN_DGTZ_ReadData(handle, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, readoutBuffer, &BufferSize);
     if (ret) {
-        emit N6740Say("We fucked here");
         ErrCode = ERR_READOUT;
         emit N6740Say(ErrMsg[ErrCode]);
         return;
@@ -1602,18 +1544,6 @@ void N6740::Loop() {
         }
 
         /* Update Histograms .cutted.*/
-
-        /* Write Event data to file */
-        if (writeToFileFlag) { // если хотим писать в файл
-            // Note: use a thread here to allow parallel readout and file writing
-            ret = WriteOutputFiles();
-            if (ret) {
-                ErrCode = ERR_OUTFILE_WRITE;
-                emit N6740Say(ErrMsg[ErrCode]);
-                return;
-            }
-            emit N6740Say("Single Event saved to output files");
-        }
         PrepareHistogramUpdate();
     }
 }
@@ -1643,19 +1573,12 @@ void N6740::PerformCalibrate() {
 void N6740::Exit() {
     /* stop the acquisition */
     CAEN_DGTZ_SWStopAcquisition(handle);
-
-    /* close the output files and free histograms*/
-    for (int ch = 0; ch < Nch; ch++) {
-        if (fout[ch])
-            fclose(fout[ch]);
-    }
-
     /* close the device and free the buffers */
     CAEN_DGTZ_FreeEvent(handle, (void**)&Event16);
     CAEN_DGTZ_FreeReadoutBuffer(&readoutBuffer);
     CAEN_DGTZ_CloseDigitizer(handle);
 }
 
-void N6740::WriteToFileSlot(){
-    this->writeToFileFlag = TRUE;
+void N6740::UpdateEnergies(QVector<double> energies){
+    this->energies = energies;
 }
