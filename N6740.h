@@ -123,7 +123,6 @@ public slots:
     void Stop();
     void PerformCalibrate();
     void Exit();
-    void test();                // remove later on
     void Loop();
     void WriteToFileSlot();
 

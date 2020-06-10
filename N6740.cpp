@@ -714,12 +714,15 @@ void N6740::PrepareHistogramUpdate() {
         if (Size <= 0) {
             continue;
         }
-        if ( PulsePolarity[0] == CAEN_DGTZ_PulsePolarityPositive )
+        if ( PulsePolarity[0] == CAEN_DGTZ_PulsePolarityPositive ){
             extremum[ch] = *std::max_element(Event16->DataChannel[ch], Event16->DataChannel[ch] + Size);
+            emit N6740Say("Extremum " + QString::number(ch) + " = " + QString::number(extremum[ch]));
+        }
         else
             extremum[ch] = *std::min_element(Event16->DataChannel[ch], Event16->DataChannel[ch] + Size);
     }
     extremumSum = std::accumulate(extremum, extremum + 32, extremumSum);
+    emit N6740Say("ExtremumSum = " + QString::number(extremumSum));
     if (extremumSum != 0)
         for (int ch = 0; ch < Nch; ch++) {
             percentagies[ch] = fabs((extremum[ch] / extremumSum) * 100);
@@ -1481,38 +1484,6 @@ void N6740::Load_DAC_Calibration_From_Flash() {
 
     free(buffer);
     emit N6740Say("DAC calibration correctly loaded from board flash.");
-}
-void N6740::test() {
-    int ret = CAEN_DGTZ_AllocateEvent(handle, (void**)&Event16);
-    qDebug() << ret;
-    //CAEN_DGTZ_DecodeEvent(handle, EventPtr, (void**)&Event16);
-//    Event16 = new CAEN_DGTZ_UINT16_EVENT_t;
-    Event16 = (CAEN_DGTZ_UINT16_EVENT_t*)malloc(sizeof Event16);
-    *Event16->DataChannel = (uint16_t*)malloc(320);
-    *Event16->ChSize = (uint32_t)malloc(640);
-    for (int i = 0; i < 32; ++i){
-        Event16->DataChannel[i] = (uint16_t*)malloc(320);
-    }
-    Event16->DataChannel[0][2] = 83;
-    Event16->DataChannel[0][8] = 150;
-    Event16->DataChannel[1][5] = 200;
-    Event16->DataChannel[2][7] = 250;
-    Event16->DataChannel[3][3] = 300;
-    Event16->DataChannel[4][12] = 350;
-    Event16->DataChannel[5][0] = 400;
-    Event16->DataChannel[6][4] = 450;
-    Event16->DataChannel[7][3] = 500;
-    Event16->DataChannel[8][20] = 450;
-    Event16->DataChannel[9][14] = 400;
-    Event16->DataChannel[10][2] = 350;
-    Event16->DataChannel[11][2] = 300;
-    Event16->DataChannel[12][3] = 250;
-    Event16->DataChannel[13][2] = 200;
-    Event16->DataChannel[14][2] = 150;
-    Event16->DataChannel[15][2] = 100;
-    Event16->DataChannel[16][1] = 50;
-    Event16->DataChannel[28][7] = 123;
-    PrepareHistogramUpdate();
 }
 
 void N6740::Save_DAC_Calibration_To_Flash() {
