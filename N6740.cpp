@@ -661,8 +661,10 @@ void N6740::PrepareHistogramUpdate() {
         if ( PulsePolarity[0] == CAEN_DGTZ_PulsePolarityPositive ){
             extremum[ch] = *std::max_element(Event16->DataChannel[ch], Event16->DataChannel[ch] + Size);
         }
-        else
+        else{
             extremum[ch] = *std::min_element(Event16->DataChannel[ch], Event16->DataChannel[ch] + Size);
+            extremum[ch] = abs(extremum[ch] - 4096);
+        }
     }
     extremumSum = std::accumulate(extremum, extremum + 32, extremumSum);
     if (extremumSum != 0)
@@ -1468,7 +1470,7 @@ void N6740::Run() {
     Set_relative_Threshold();
     emit N6740Say("Acquisition started");
     CAEN_DGTZ_SWStartAcquisition(handle);
-    loopTimer->start(1000);
+    loopTimer->start(500);
 }
 
 void N6740::Stop() {
