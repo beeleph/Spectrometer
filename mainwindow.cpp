@@ -27,7 +27,7 @@ void MainWindow::on_exitButton_clicked()
 
 void MainWindow::on_startstopButton_toggled(bool checked)
 {
-    ui->calibrateButton->setEnabled(!checked);
+    ui->calibrateButton->setEnabled(checked);
     if (checked){
         emit StartButton();
         ui->startstopButton->setText("Остановка");

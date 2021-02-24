@@ -201,6 +201,8 @@ private:
     //my own
     QTimer *loopTimer;
     int extremum[32];               // i believe mr.mingw will initialize my sweet array with zero's.
+    int extremumOffset[32];         // offSet?
+    int extremumCalibrated[32];     // extremum - offset
     QVector<double> percentagies;
     QVector<double> energies;
 

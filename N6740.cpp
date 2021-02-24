@@ -666,10 +666,15 @@ void N6740::PrepareHistogramUpdate() {
             extremum[ch] = abs(extremum[ch] - 4096);
         }
     }
-    extremumSum = std::accumulate(extremum, extremum + 32, extremumSum);
+    for (int ch = 0; ch < Nch; ch++) {
+        extremumCalibrated[ch] = extremum[ch] - extremumOffset[ch];
+        if (extremumCalibrated[ch] < 0)
+            extremumCalibrated[ch] = 0;
+    }
+    extremumSum = std::accumulate(extremumCalibrated, extremumCalibrated + 32, extremumSum);
     if (extremumSum != 0)
         for (int ch = 0; ch < Nch; ch++) {
-            percentagies[ch] = fabs((extremum[ch] / extremumSum) * 100);
+            percentagies[ch] = fabs((extremumCalibrated[ch] / extremumSum) * 100);
         }
     emit DataChanged(percentagies);
 }
@@ -1551,25 +1556,11 @@ void N6740::Loop() {
 }
 
 void N6740::PerformCalibrate() {
-    // SHOULD WORK ONLY WHEN ACQUISITION IS STOPPED!!!
-    emit N6740Say("Remember to Disconnect input signal from all channels.");
-    Calibrate_XX740_DC_Offset();
-    int i = 0;
-    CAEN_DGTZ_ErrorCode err;
-    //set new dco values using calibration data
-    for (i = 0; i < BoardInfo.Channels; i++) {
-        if (EnableMask & (1 << i)) {
-            if (Version_used[i] == 1)
-                Set_calibrated_DCO(i);
-            else {
-                err = CAEN_DGTZ_SetChannelDCOffset(handle, (uint32_t)i, DCoffset[i]);
-                if (err)
-                    emit N6740Say("Error setting channel offset" + QString::number(i));
-            }
-         }
+    emit N6740Say("Remember to leave only noise signal before calibration");
+    for (int ch = 0; ch < Nch; ++ch){
+        extremumOffset[ch] = extremum[ch];
     }
-    Sleep(200);
-    emit N6740Say("DAC calibration ready!!");
+    emit N6740Say("Calibration finished");
 }
 
 void N6740::Exit() {
