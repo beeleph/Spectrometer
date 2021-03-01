@@ -52,9 +52,6 @@ int main(int argc, char *argv[])
  *  Отрефакторить родные определения/инициализации переменных. Они вызывают вопросы. Особенно в Loop()
  *  Выделить в отдельный класс конфиг, таймер, еще чо-нить
  *
- *  To commit:
- *  to PrepareHistogramUpdate() calibration added
- *  PerformCalibrate rewrite
- *  CalibrateButton active state changed
+ *
  *
 */

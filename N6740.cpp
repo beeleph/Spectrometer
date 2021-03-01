@@ -637,7 +637,7 @@ void N6740::WriteOutputFiles(double current)
         stream << "Ibruker = " << current << endl;
         stream << "Ch#   MeV   Percent   Extremum" << endl;
         for (int i = 0; i < 32; ++i){
-            stream << i << "   " << energies[i] << "   " << percentagies[i] << "   " << extremum[i] << endl;
+            stream << i << "   " << energies[i] << "   " << percents[i] << "   " << extremum[i] << endl;
         }
         report.close();
         emit N6740Say("Report successfully writed");
@@ -651,8 +651,8 @@ void N6740::PrepareHistogramUpdate() {
     for (int i = 0; i < 32; ++i){
         extremum[i] = 0;
     }
-    percentagies.fill(0);
     double extremumSum = 0;        // for propriete divide "/" function (int/double) and it's cheaper than double extremum
+    double extremumMax = 0;
     for (int ch = 0; ch < Nch; ch++) {
         uint32_t Size = Event16->ChSize[ch];
         if (Size <= 0) {
@@ -672,11 +672,20 @@ void N6740::PrepareHistogramUpdate() {
             extremumCalibrated[ch] = 0;
     }
     extremumSum = std::accumulate(extremumCalibrated, extremumCalibrated + 32, extremumSum);
+    extremumMax = *std::max_element(extremumCalibrated, extremumCalibrated + 32);
     if (extremumSum != 0)
         for (int ch = 0; ch < Nch; ch++) {
-            percentagies[ch] = fabs((extremumCalibrated[ch] / extremumSum) * 100);
+            percents[ch] = fabs((extremumCalibrated[ch] / extremumSum) * 100);
         }
-    emit DataChanged(percentagies);
+    else
+        percents.fill(0);
+    for (int ch = 0; ch < Nch; ch++) {
+        if (viewInPercents)
+            dataToHisto[ch] = fabs((extremumCalibrated[ch] / extremumMax) * 100);
+        else
+            dataToHisto[ch] = fabs((extremumCalibrated[ch] / 4096) * 100);
+    }
+    emit DataChanged(dataToHisto);
 }
 
 /* ########################################################################### */
@@ -694,8 +703,10 @@ int N6740::Init()
     FILE *f_ini;
     loopTimer = new QTimer(this);
     connect(loopTimer, SIGNAL(timeout()), this, SLOT(Loop()));
-    percentagies.resize(32);
+    percents.resize(32);
+    dataToHisto.resize(32);
     energies.resize(32);
+    viewInPercents = 1;
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
 

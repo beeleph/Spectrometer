@@ -7,6 +7,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     ClearGui();
+    ui->absoluteLabel->setVisible(false);
 }
 
 void MainWindow::Say(QString text){
@@ -214,4 +215,20 @@ void MainWindow::ClearGui(){
     ui->ch29EnergyLabel->setText("0");
     ui->ch30EnergyLabel->setText("0");
     ui->ch31EnergyLabel->setText("0");
+}
+
+void MainWindow::on_relativeViewButton_clicked()
+{
+    emit ViewButton(1);
+    ui->relativeLabel->setVisible(1);
+    ui->absoluteLabel->setVisible(0);
+    ui->absoluteViewButton->setChecked(0);
+}
+
+void MainWindow::on_absoluteViewButton_clicked()
+{
+    emit ViewButton(0);
+    ui->relativeLabel->setVisible(0);
+    ui->absoluteLabel->setVisible(1);
+    ui->relativeViewButton->setChecked(0);
 }

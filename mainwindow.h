@@ -25,6 +25,7 @@ signals:
     void BrukerCurrentChanged(double current);
     void GroupingChanged(int count);
     void WriteToFileButton(double current);
+    void ViewButton(bool percent);
 
 public slots:
     void Say(QString text);
@@ -52,6 +53,10 @@ private slots:
     void on_radioButtonEight_clicked();
 
     void on_writeToFileButton_clicked();
+
+    void on_relativeViewButton_clicked();
+
+    void on_absoluteViewButton_clicked();
 
 private:
     QTime CurTime;
