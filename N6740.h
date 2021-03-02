@@ -127,6 +127,7 @@ public slots:
     void Loop();
     void WriteOutputFiles(double current); // change
     void UpdateEnergies(QVector<double> energies);
+    void ViewChanged(bool percent);
 
 private:
     void Set_relative_Threshold();

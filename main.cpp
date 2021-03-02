@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
     QObject::connect(&lamConfig, SIGNAL(EnergiesChanged(QVector<double>)), &digitizer, SLOT(UpdateEnergies(QVector<double>)));
     QObject::connect(&w, SIGNAL(BrukerCurrentChanged(double)), &lamConfig, SLOT(ChangeBrukerCurrent(double)));
     QObject::connect(&w, SIGNAL(GroupingChanged(int)), &lamConfig, SLOT(ChangeLamelGrouping(int)));
+    QObject::connect(&w, SIGNAL(ViewButton(bool)), &digitizer, SLOT(ViewChanged(bool)));
     if (lamConfig.ReadConfig())
         w.Say("Failed to read lamelsConfig");
     //QVector<double> z(32);

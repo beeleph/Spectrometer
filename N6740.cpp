@@ -635,9 +635,9 @@ void N6740::WriteOutputFiles(double current)
         QTextStream stream(&report);
         stream << dateTime.toString() << endl;
         stream << "Ibruker = " << current << endl;
-        stream << "Ch#   MeV   Percent   Extremum" << endl;
+        stream << "Ch#   MeV   Percent   ExtremumCalibrated   NoiseLevel" << endl;
         for (int i = 0; i < 32; ++i){
-            stream << i << "   " << energies[i] << "   " << percents[i] << "   " << extremum[i] << endl;
+            stream << i << "   " << energies[i] << "   " << percents[i] << "   " << extremumCalibrated[i] << "   " << extremumOffset[i] << endl;
         }
         report.close();
         emit N6740Say("Report successfully writed");
@@ -1585,4 +1585,7 @@ void N6740::Exit() {
 
 void N6740::UpdateEnergies(QVector<double> energies){
     this->energies = energies;
+}
+void N6740::ViewChanged(bool percent){
+    viewInPercents = percent;
 }
