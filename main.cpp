@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, SIGNAL(ViewButton(bool)), &digitizer, SLOT(ViewChanged(bool)));
     if (lamConfig.ReadConfig())
         w.Say("Failed to read lamelsConfig");
+
     //QVector<double> z(32);
     //z.fill(75.0);
     //w.UpdateHistogram(z);

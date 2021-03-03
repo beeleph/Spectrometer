@@ -707,6 +707,9 @@ int N6740::Init()
     dataToHisto.resize(32);
     energies.resize(32);
     viewInPercents = 1;
+    for (int i = 0; i < Nch; ++i){          // initialization
+        extremumOffset[i] = 0;
+    }
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
 
