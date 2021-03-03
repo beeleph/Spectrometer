@@ -8,6 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     ClearGui();
     ui->absoluteLabel->setVisible(false);
+    ui->relativeViewButton->setChecked(true);
 }
 
 void MainWindow::Say(QString text){
