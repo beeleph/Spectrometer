@@ -637,7 +637,7 @@ void N6740::WriteOutputFiles(double current)
         stream << "Ibruker = " << current << endl;
         stream << "Ch#   MeV   Percent   ExtremumCalibrated   NoiseLevel" << endl;
         for (int i = 0; i < 32; ++i){
-            stream << i << "   " << energies[i] << "   " << percents[i] << "   " << extremumCalibrated[i] << "   " << extremumOffset[i] << endl;
+            stream << i << "   " << energies[i] << "   " << percents[i] << "              " << extremumCalibrated[i] << "               " << extremumOffset[i] << endl;
         }
         report.close();
         emit N6740Say("Report successfully writed");
@@ -681,9 +681,9 @@ void N6740::PrepareHistogramUpdate() {
         percents.fill(0);
     for (int ch = 0; ch < Nch; ch++) {
         if (viewInPercents)
-            dataToHisto[ch] = fabs((extremumCalibrated[ch] / extremumMax) * 100);
+            dataToHisto[ch] = (extremumCalibrated[ch] / extremumMax) * 100;
         else
-            dataToHisto[ch] = fabs((extremumCalibrated[ch] / 4096) * 100);
+            dataToHisto[ch] = (extremumCalibrated[ch] / 4096.0) * 100;
     }
     emit DataChanged(dataToHisto);
 }
