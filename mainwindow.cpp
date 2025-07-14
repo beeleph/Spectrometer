@@ -233,3 +233,8 @@ void MainWindow::on_absoluteViewButton_clicked()
     ui->absoluteLabel->setVisible(1);
     ui->relativeViewButton->setChecked(0);
 }
+
+void MainWindow::on_pushButton_toggled(bool checked)
+{
+    emit AverageButton(checked);
+}

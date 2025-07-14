@@ -26,6 +26,7 @@ signals:
     void GroupingChanged(int count);
     void WriteToFileButton(double current);
     void ViewButton(bool percent);
+    void AverageButton(bool average);
 
 public slots:
     void Say(QString text);
@@ -57,6 +58,8 @@ private slots:
     void on_relativeViewButton_clicked();
 
     void on_absoluteViewButton_clicked();
+
+    void on_pushButton_toggled(bool checked);
 
 private:
     QTime CurTime;

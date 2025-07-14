@@ -648,8 +648,10 @@ void N6740::WriteOutputFiles(double current)
 }
 
 void N6740::PrepareHistogramUpdate() {
+    int bufSums[32];
     for (int i = 0; i < 32; ++i){
         extremum[i] = 0;
+        bufSums[i] = 0;
     }
     double extremumSum = 0;        // for propriete divide "/" function (int/double) and it's cheaper than double extremum
     double extremumMax = 0;
@@ -666,11 +668,19 @@ void N6740::PrepareHistogramUpdate() {
             extremum[ch] = abs(extremum[ch] - 4096);
         }
     }
+
     for (int ch = 0; ch < Nch; ch++) {
         extremumCalibrated[ch] = extremum[ch] - extremumOffset[ch];
+        extremumBuffer[bufCounter][ch] = extremumCalibrated[ch];
         if (extremumCalibrated[ch] < 0)
             extremumCalibrated[ch] = 0;
     }
+    for (int buf = 0; buf < AVERAGE_BUFFER_SIZE; ++buf){
+        for (int ch = 0; ch < Nch; ch++){
+            bufSums[ch] += extremumBuffer[buf][ch];
+        }
+    }
+
     extremumSum = std::accumulate(extremumCalibrated, extremumCalibrated + 32, extremumSum);
     extremumMax = *std::max_element(extremumCalibrated, extremumCalibrated + 32);
     if (extremumSum != 0)
@@ -680,11 +690,21 @@ void N6740::PrepareHistogramUpdate() {
     else
         percents.fill(0);
     for (int ch = 0; ch < Nch; ch++) {
-        if (viewInPercents)
-            dataToHisto[ch] = (extremumCalibrated[ch] / extremumMax) * 100;
-        else
-            dataToHisto[ch] = (extremumCalibrated[ch] / 4096.0) * 100;
+        if (viewAverage){
+            if (viewInPercents)
+                dataToHisto[ch] = ((bufSums[ch] / AVERAGE_BUFFER_SIZE) / extremumMax) * 100;    // average instead of extremumcalibrated
+            else
+                dataToHisto[ch] = ((bufSums[ch] / AVERAGE_BUFFER_SIZE) / 4096.0) * 100;
+        } else {
+            if (viewInPercents)
+                dataToHisto[ch] = (extremumCalibrated[ch] / extremumMax) * 100;
+            else
+                dataToHisto[ch] = (extremumCalibrated[ch] / 4096.0) * 100;
+        }
     }
+    bufCounter++;
+    if (bufCounter > AVERAGE_BUFFER_SIZE - 1)
+        bufCounter = 0;
     emit DataChanged(dataToHisto);
 }
 
@@ -709,6 +729,12 @@ int N6740::Init()
     viewInPercents = 1;
     for (int i = 0; i < Nch; ++i){          // initialization
         extremumOffset[i] = 0;
+    }
+
+    for (int j = 0; j < AVERAGE_BUFFER_SIZE; ++j){
+        for (int i = 0; i < 32; ++i){
+            extremumBuffer[j][i] = 0;
+        }
     }
 
     int ReloadCfgStatus = 0x7FFFFFFF; // Init to the bigger positive number
@@ -1591,4 +1617,7 @@ void N6740::UpdateEnergies(QVector<double> energies){
 }
 void N6740::ViewChanged(bool percent){
     viewInPercents = percent;
+}
+void N6740::AverageChanged(bool average){
+    viewAverage = average;
 }

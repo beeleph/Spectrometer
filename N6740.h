@@ -51,6 +51,7 @@
 
 #define CFGRELOAD_CORRTABLES_BIT (0)
 #define CFGRELOAD_DESMODE_BIT (1)
+#define AVERAGE_BUFFER_SIZE 10
 
 #define NPOINTS 2
 #define NACQS   50
@@ -128,6 +129,7 @@ public slots:
     void WriteOutputFiles(double current); // change
     void UpdateEnergies(QVector<double> energies);
     void ViewChanged(bool percent);
+    void AverageChanged(bool average);
 
 private:
     void Set_relative_Threshold();
@@ -202,9 +204,12 @@ private:
     //my own
     QTimer *loopTimer;
     bool viewInPercents;
+    bool viewAverage = FALSE;
     int extremum[32];                           // i believe mr.mingw will initialize my sweet array with zero's.
     int extremumOffset[32];                     // offSet?
     int extremumCalibrated[32];     // extremum - offset
+    int bufCounter = 0;             // from 0 to AVERAGE_BUFFER_SIZE - 1 . for
+    QVector <int[32]> extremumBuffer[10];
     QVector<double> percents;
     QVector<double> dataToHisto;
     QVector<double> energies;

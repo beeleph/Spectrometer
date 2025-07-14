@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, SIGNAL(BrukerCurrentChanged(double)), &lamConfig, SLOT(ChangeBrukerCurrent(double)));
     QObject::connect(&w, SIGNAL(GroupingChanged(int)), &lamConfig, SLOT(ChangeLamelGrouping(int)));
     QObject::connect(&w, SIGNAL(ViewButton(bool)), &digitizer, SLOT(ViewChanged(bool)));
+    QObject::connect(&w, SIGNAL(AverageButton(bool)), &digitizer, SLOT(AverageChanged(bool)));
     if (lamConfig.ReadConfig())
         w.Say("Failed to read lamelsConfig");
 
