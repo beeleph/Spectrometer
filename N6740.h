@@ -209,7 +209,7 @@ private:
     int extremumOffset[32];                     // offSet?
     int extremumCalibrated[32];     // extremum - offset
     int bufCounter = 0;             // from 0 to AVERAGE_BUFFER_SIZE - 1 . for
-    QVector <int[32]> extremumBuffer[10];
+    int extremumBuffer[AVERAGE_BUFFER_SIZE][32];
     QVector<double> percents;
     QVector<double> dataToHisto;
     QVector<double> energies;
